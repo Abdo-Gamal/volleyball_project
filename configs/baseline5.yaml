@@ -12,7 +12,7 @@ train:
   lr: .0001
   weight_decay: .0001
   eta_min: .000001
-  drop_p: .3
+  drop_p: .5
   gamma: 1.0
   hidden_dim: 512
   lstm_num_layer : 1
