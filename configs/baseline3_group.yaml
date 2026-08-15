@@ -1,0 +1,25 @@
+# ========================================
+# Baseline 3 Configuration
+# ========================================
+
+experiment:
+  name: baseline3_resnet50  group model
+
+train:
+  batch_size: 16
+  epochs: 5
+  lr: .0003
+  weight_decay: .0001
+  eta_min: .00001
+  drop_p: .6
+  gamma: 1.0
+  print_evl_perclass: False 
+
+  
+
+model:
+  freeze_backbone: False
+  path: /nfs/slurm/assu002/projects/volleyball_project/outputs/baseline3/PersonModel_best.pth
+
+output:
+  root: /nfs/slurm/assu002/projects/volleyball_project/outputs/baseline3

@@ -1,0 +1,150 @@
+# jop script
+create script and submitscript
+
+$ touch myscript.sh
+$ nano  myscript.sh
+$ sbatch myscript.sh
+
+# info on resources 
+sinfo -Rl            # give you info on cpu , mem , TEM_Disk 
+
+# jop status 
+squeue --me -l 
+
+# upload file/folder to server 
+scp -r complete-b3.ipynb assu002@hpclogin.mohesr.gov.eg:~/scratch
+
+
+
+
+
+#################### Example on vollyball baseline3 #####
+
+
+        < ----- change path for each baseline -------->
+
+1-base_yaml   root: path → /tmp/assu002/volleyball_data/videos   
+2-run_volleyball.sh --> change path  for run python file  path
+3-baseline3_person.yaml  output root: → /nfs/slurm/assu002/outputs/baseline_model3
+
+         <-- change something make train fast  i this in train file-->
+
+2-data_loader.prefetch_factor=2 
+3-b3_multitask_trainer.deterministic=  False 
+                       benchmark= True
+
+                         <----- upload data ------->
+
+open terminal on local machine in place where is the project exist 
+
+##first method
+
+scp -r volleyball_project assu002@hpclogin.mohesr.gov.eg:/nfs/slurm/assu002/projects/volleyball_project/
+                                  
+## second method
+
+# morning — sync HPC changes to local (backup)
+# edit code in VS Code Remote SSH directly on HPC
+# no upload needed — you edited directly on HPC
+
+# sync local → HPC (upload changes only)
+
+
+You do not want to sync the dataset or model checkpoints to local — too large:
+rsync -avz --progress  \
+    --exclude='*.pth' \
+    volleyball_project \
+    assu002@hpclogin.mohesr.gov.eg:/nfs/slurm/assu002/projects/
+     
+
+# sync HPC → local (download changes only)
+rsync -avz --progress \
+    assu002@hpclogin.mohesr.gov.eg:/nfs/slurm/assu002/projects/volleyball_project/ \
+    volleyball_project
+
+
+
+                   <--Convert Notebook to Python Script-->
+
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate vision_env  or in pc conda activate jupyter_env
+pip install nbconvert
+
+
+# convert group model notebook in hpc 
+
+jupyter nbconvert --to script \
+    /nfs/slurm/$USER/projects/volleyball_project/models/baseline_model3/Run_Baseline3_group_model.ipynb \
+    --output-dir /nfs/slurm/$USER/projects/volleyball_project/models/baseline_model3/
+
+# convert group model notebook in local 
+jupyter nbconvert --to script \
+    volleyball_project/runs/baseline3/Run_Baseline3_person_model.ipynb \
+    --output-dir volleyball_project/runs/baseline3/
+
+       <--run script call  run_volleyball.sh in project folder > 
+
+sbatch /nfs/slurm/$USER/projects/volleyball_project/run_volleyball.sh
+
+#show state for jop
+squeue --me 
+
+# show oupu tfile 
+tail -f /nfs/slurm/$USER/projects/volleyball_project/logs/baseline4.txt
+
+# cancel jop 
+scancel --me 
+scancel $(squeue -u $USER -h -o "%i")
+
+
+                                <----------helper---------->
+
+# rename txt to py
+mv /nfs/slurm/$USER/projects/volleyball_project/models/baseline_model3/Run_Baseline3_person_model.txt \
+   /nfs/slurm/$USER/projects/volleyball_project/models/baseline_model3/Run_Baseline3_person_model.py
+
+#Then verify search for  any thing end with .py:
+
+ls -lh /nfs/slurm/$USER/projects/volleyball_project/models/baseline_model3/*.py
+#show 20 line in this file 
+head -20 /nfs/slurm/$USER/projects/volleyball_project/models/baseline_model3/Run_Baseline3_person_model.py
+
+# show num_workers in script
+grep -n "num_workers\|cpu_count\|build_dataloader" \
+/nfs/slurm/$USER/projects/volleyball_project/models/baseline_model3/Run_Baseline3_person_model.py
+
+
+# change line of code  "cahnge num_workers=os.cpu_count() ot num_workers=2"
+sed -i 's/num_workers=os.cpu_count()/num_workers=2/g' \
+    /nfs/slurm/$USER/projects/volleyball_project/models/baseline_model3/Run_Baseline3_group_model.py
+
+
+# fix 2 - increase workers to 4
+sed -i 's/num_workers=2/num_workers=4/' \
+    /nfs/slurm/$USER/volleyball_project/models/baseline_model3/Run_Baseline3_person_model.py
+
+# fix 1 - increase batch size
+sed -i 's/batch_size: 32/batch_size: 256/' \
+    /nfs/slurm/$USER/projects/volleyball_project/configs/baseline3_person.yaml
+
+# This shows exactly how many CPUs are allocated to your current job.
+scontrol show job $(squeue -u $USER -h -o "%i") | grep -i cpu
+
+# Check All Nodes for Full GPU
+scontrol show nodes | grep -A5 "NodeName" | grep -E 
+
+                   <---------nano-------->
+nano /nfs/slurm/$USER/projects/volleyball_project/run_volleyball.sh
+
+nano /nfs/slurm/$USER/projects/volleyball_project/configs/baseline3_person.yaml
+
+                     <----- copy ------>
+# copy the file directly to your cluster: # on your cluster — paste the entire file content
+
+cat > /nfs/slurm/$USER/projects/volleyball_project/trainers/b3_multitask_trainer.py << 'EOF'
+
+
+        <<----------------------------->>
+
+squeque  to show  your jop
+

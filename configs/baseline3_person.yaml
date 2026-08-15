@@ -1,0 +1,26 @@
+# ========================================
+# Baseline 3 Configuration
+# ========================================
+
+experiment:
+  name: baseline3_resnet50
+
+train:
+  batch_size: 32
+  epochs: 20
+  lr: .0004
+  weight_decay: .02
+  eta_min: .0000008
+  drop_p: .7
+  gamma: .1
+  coarse_num:  3
+  coarse_weight: .5
+  print_evl_perclass: False 
+
+
+model:
+  freeze_backbone: False
+
+output:
+  root: /nfs/slurm/assu002/projects/volleyball_project/outputs/baseline3
+

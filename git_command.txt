@@ -1,0 +1,49 @@
+<--## initialize git  and create file use in tracing change -->
+git init 
+
+<---## to shaw  state of work space what commit ..etc -->
+git status 
+
+<----## move file to stage area --->
+
+git add .  or git add file name 
+ex  git add a.txt
+
+<----## move file to commit area --->
+
+git commit -m "any msg"
+
+<----## move file to local repo area --->
+git 
+
+
+<-----## to show all commit and commit id  ---->
+
+git log -v   
+
+
+<-----## to show move throw  commit ---->
+git check commit_id  
+
+<-----## to show move throw  commit to last commit version  ---->
+git check master    "master is branch "
+
+
+<---- ## extra info ---->
+if file have  u letter in front of this name  this mean untracked file
+if file have  A letter in front of this name  this mean track file
+if file have  M letter in front of this name  this mean Modify file
+
+<----------------------------end of basic command ------------------------------>
+
+<-------## to create new branch ---->
+git checkout -b branchName 
+
+<-------## to marge new branch with master  ---->
+go to master branch  and then type
+git marge  new  branchName
+
+<---------delete git file that tracking project  and start from beegine------------>
+rm -rf .git
+git init
+

@@ -1,0 +1,25 @@
+
+# ========================================
+# Baseline 1 Configuration
+# ========================================
+
+experiment:
+  name: baseline4_resnet50
+
+train:
+  batch_size: 8
+  epochs: 40
+  lr: .0003
+  weight_decay: .0001
+  eta_min: .000001
+  drop_p: .2
+  gamma: 1.0
+  print_PerClass: False 
+
+
+model:
+  freeze_backbone: False
+
+output:
+  root: /nfs/slurm/assu002/projects/volleyball_project/outputs/baseline4
+ 
