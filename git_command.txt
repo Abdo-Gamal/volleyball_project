@@ -69,6 +69,7 @@ git branch -M main
 git remote add origin https://github.com/Abdo-Gamal/volleyball_project.git
 
 # push 
- git push -u origin main --force
+git push -u origin main --force
 
  # if need pull 
+git pull origin main    # original is the place we pull from it 
