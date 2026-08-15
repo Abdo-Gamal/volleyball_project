@@ -47,3 +47,28 @@ git marge  new  branchName
 rm -rf .git
 git init
 
+<------ create ignore file -------------->
+
+echo -e "*.pth\n*.pkl\nvideos/\noutputs/\ndatasets/\n__pycache__/\n.ipynb_checkpoints/\n" > .gitignore
+
+<-------------------------- example ------------->
+# start from begin
+
+rm -rf .git
+git init
+
+# create add ignore 
+echo -e "*.pth\n*.pkl\nvideos/\noutputs/\ndatasets/\n__pycache__/\n.ipynb_checkpoints/\n" > .gitignore
+
+# add all file 
+git add .
+git commit -m "Initial commit with clean setup"
+git branch -M main
+
+#like oline repo i make with local 
+git remote add origin https://github.com/Abdo-Gamal/volleyball_project.git
+
+# push 
+ git push -u origin main --force
+
+ # if need pull 
