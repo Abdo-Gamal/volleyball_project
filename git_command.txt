@@ -65,11 +65,16 @@ git add .
 git commit -m "Initial commit with clean setup"
 git branch -M main
 
-#like oline repo i make with local 
+<---------like oline repo i make with local ---->
 git remote add origin https://github.com/Abdo-Gamal/volleyball_project.git
+<-----------show the complete link for remote repo ------->
+git remote -v 
+<------push ----->  
+# original is the name of remote , mian name for local repo
+git push -u origin main --force 
 
-# push 
-git push -u origin main --force
-
- # if need pull 
+<------ if need pull ---->  
 git pull origin main    # original is the place we pull from it 
+
+<----------change master branch to main-------->
+git branch -M  main
