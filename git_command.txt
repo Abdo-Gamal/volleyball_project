@@ -95,7 +95,7 @@ make new branch when start in new feature after complete marge in master/main
 <-----if you want push all branch ------------------------------------------------------>
 git push --all origin
 
-
+git pull = git fetch + git merge
 
 <---------------------------------------------------------------------------------------------------->
 <------------------------ some important case in switch between commit  ----------------------------------->
