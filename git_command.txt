@@ -207,3 +207,10 @@ git config--global  user.name "" or git config --global --unset user.name
 
 edit config by editor   "give you some color "
 git --config --global --edit 
+
+
+<----------------------------------------------------------------------->
+<-------------------------public key------------------------------------>
+
+ssh-keygen  -t rsa -b 4096 -c "bgmal917@gmail.com"   not work 
+
