@@ -22,10 +22,10 @@ git
 git log -v   
 
 
-<-----## to show move throw  commit ---->
+<-----## to show move throw  commit ---------------------------------->
 git check commit_id  
 
-<-----## to show move throw  commit to last commit version  ---->
+<-----## to show move throw  commit to last commit version  ------------------>
 git check master    "master is branch "
 
 
@@ -36,11 +36,11 @@ if file have  M letter in front of this name  this mean Modify file
 
 <----------------------------end of basic command ------------------------------>
 
-<-------## to create new branch ---->
+<-------## to create new branch ------------------------------------------------->
 git checkout -b branchName 
 
-<-------## to marge new branch with master  ---->
-go to master branch  and then type
+<-------## to marge new branch with master --------------------------------- ---->
+git checkout main                 #go to master branch  and then type  
 git marge  new  branchName
 
 <---------delete git file that tracking project  and start from beegine------------>
@@ -51,7 +51,11 @@ git init
 
 echo -e "*.pth\n*.pkl\nvideos/\noutputs/\ndatasets/\n__pycache__/\n.ipynb_checkpoints/\n" > .gitignore
 
-<-------------------------- example ------------->
+
+
+
+<------------------------------------------------------------------------------------>
+<--------------------------- example ------------------------------------------------->
 # start from begin
 
 rm -rf .git
@@ -67,14 +71,139 @@ git branch -M main
 
 <---------like oline repo i make with local ---->
 git remote add origin https://github.com/Abdo-Gamal/volleyball_project.git
+
 <-----------show the complete link for remote repo ------->
 git remote -v 
-<------push ----->  
-# original is the name of remote , mian name for local repo
+<---------------push --------------------------------------------------------->  
+# original is the name of remote , main name for local repo                  
 git push -u origin main --force 
 
-<------ if need pull ---->  
+<------ if need pull ------------------------------------------------------>  
 git pull origin main    # original is the place we pull from it 
 
-<----------change master branch to main-------->
+<--------------------------change master branch to main------------------------------>
 git branch -M  main
+
+<-------------------------------------- when make branch --------------------------------->
+make new branch when start in new feature after complete marge in master/main 
+
+<----------------------------------------------- main rule --------------------------------->
+1- do not  write code in main branch 
+
+<--- when make push it push only  branch  you stand on it --------------------------------->
+
+<-----if you want push all branch ------------------------------------------------------>
+git push --all origin
+
+
+
+<---------------------------------------------------------------------------------------------------->
+<------------------------ some important case in switch between commit  ----------------------------------->
+marge is like ant commit 
+
+<---1#if wite some not wrong code or not work code and do not make commit ----->
+ git restore    # go bach to last commit  and remove any wrong code 
+
+<---2# if need  see old code without delete new code must git commit id/hash ---------->
+git checkout <commit_hash>          # go to old version of code 
+git checkout -                      # go back to last commit stand on before checkout
+ 
+git log                             # show all commit for branch i stand on now
+git log --all                       # show all commit for all branch 
+git log --oneline --graph --all     # show command as tree 
+
+<----3#  if need  undo or reverse commit  ,this make new commit reverse change of wrong commit ---->
+git revert <commit_hash>   # use it to make new commit , so other see and pull this commit  and do not delete or damage their work 
+marge is like ant commit 
+
+<---4# need to remove wong commit not exit again  , this is dengourase command----->
+git reset --hard <commit_hash>
+
+
+
+<----------------------------------------------------------------------------------->
+<------Pull Request (PR)------------------------------------------------------------>
+mean you have complete branch and need to marge 
+
+
+<-------------------------------------------------------------------------------->
+<--------------------------------case--------------------------------------- ---->
+Push: Upload your finished branch to GitHub using git push origin featureX.
+
+Pull Request (PR): Open GitHub in your browser and click the green "Compare & Pull Request" button.
+
+Merge: Click "Merge" on GitHub to add your new code into the online main branch.
+
+Local is Old: Your laptop doesn't know about the online merge, so its local main branch is now outdated.
+
+Pull: Run git pull origin main to download the updated code from GitHub to your laptop.
+
+
+
+
+<-------------------------case2------------------------------------>
+1. Update Local Main 
+
+The Steps:
+git checkout main
+git pull origin main
+
+When to use: Before starting any new work. To make sure your laptop has the latest updates.
+
+2. Create a Branch 
+
+The Step: git checkout -b <branch_name>
+
+When to use: When you start a new task (like fixing a bug or adding DDP). This keeps the main code safe.
+
+3. Save Work Locally 
+
+The Steps:
+git add <file_name>
+git commit -m "your message"
+
+When to use: When you finish a small, working part of your code. You can do this many times per day.
+
+4. Push to GitHub 
+
+The Step: git push origin <branch_name>
+
+When to use: When your task is 100% finished and you are ready to send it to GitHub.
+
+5. Open Pull Request 
+
+The Step: Open the GitHub website and click the green "Compare & pull request" button.
+
+When to use: Right after you Push (Step 4), to see a visual comparison of your changes (green for added, red for deleted).
+
+6. Merge PR 
+
+The Step: Click the "Merge pull request" button on the GitHub website.
+
+When to use: After you look at the visual comparison and make sure there are no mistakes.
+
+7. Sync Laptop 
+
+The Steps:
+git checkout main
+git pull origin main
+
+When to use: After you click Merge on GitHub (Step 6).
+ This downloads the final, merged code back to your laptop so you can start a new task.
+
+<--------------------------------------------------------------------->
+<-------------------------config------------------------------------>
+
+show all config 
+git config  -l 
+git help config 
+
+add name 
+git config--global  user.name " abulrahman "
+git config--global  user.email "example@gmail.com "
+
+delete name 
+git config--global  user.name "" or git config --global --unset user.name 
+
+edit config by editor   "give you some color "
+git --config --global --edit 
