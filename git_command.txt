@@ -324,3 +324,10 @@ git br                                          # show all branch
 seach on git alais list 
 
 
+<--------------------------------------------------------------------------->
+<------------------Stash info------------------------------------------------>
+slash like box save file in it to continuos work on after 
+git slash             #save file that exit in stage area  to use it after that 
+git stash list        # show all file in slash 
+fit slash pop         # pop file form slash to stage area 
+
