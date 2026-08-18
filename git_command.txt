@@ -342,5 +342,25 @@ git clean -n                     # delete all untracking file "not in stage area
 delete commit 
 git reset --hard commit_id        # it delete commit by change head to pointer on old commit 
 
+The Difference: Git Reset vs. Git Stash 
+
+git reset (Unstaging):
+It removes files from the Staging Area, but keeps your code on the screen.
+ Use this when you accidentally typed git add and want to undo it, but you still 
+ want to keep working on the code.
+
+git stash (Hiding):
+It takes all your uncommitted changes and hides them in a safe box, returning your files to a clean state.
+
+When to use stash:
+Use it when you are in the middle of messy, unfinished work and you urgently 
+need to switch to another branch. It cleans your screen so you can switch safely,
+and you can bring your work back later using git stash pop.
+
+
+
+<---------------------------------------------------------------------------->
+<-----------------Ignoring Files And Directories----------------------------->
+
 
 
