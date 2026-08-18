@@ -337,4 +337,10 @@ fit slash pop         # pop file form slash to stage area
 git restore --stage fileName     # return file form stage area 
 git clean -n                     # delete all untracking file "not in stage area" 
 
+<---------------------------------------------------------------------------->
+<------------------ Resetting The Head--------------------------------------->
+delete commit 
+git reset --hard commit_id        # it delete commit by change head to pointer on old commit 
+
+
 
