@@ -242,8 +242,8 @@ git checkout main: Switch back to your primary stable branch.
 git pull origin main: Download the newly merged updates from GitHub to your laptop.
 
 git branch -d <branch_name>: Delete the finished local branch to keep your workspace clean.
-
-git push origin --delete <branch_name>  # delete branch form remote 
+git branch -D <branch_name>:  Delete the unfinished  local branch 
+git push origin --delete <branch_name>       # delete branch form remote 
 
 
 <----------------------------------------------------------------------->
