@@ -331,3 +331,10 @@ git slash             #save file that exit in stage area  to use it after that
 git stash list        # show all file in slash 
 fit slash pop         # pop file form slash to stage area 
 
+
+<--------------------------------------------------------------------------->
+<------------------Restore And Clean---------------------------------------->
+git restore --stage fileName     # return file form stage area 
+git clean -n                     # delete all untracking file "not in stage area" 
+
+
