@@ -288,3 +288,4 @@ Case 2: Running git pull origin main (Specifying a branch)
 You are giving Git a strict command: "Go to the server, get the latest code from main, and merge it into the branch I am standing on right now." If you are currently on the wht branch,
 the remote main updates will be downloaded and merged directly into wht.
 
+ 
