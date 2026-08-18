@@ -76,7 +76,7 @@ git remote add origin https://github.com/Abdo-Gamal/volleyball_project.git
 git remote -v 
 <---------------push --------------------------------------------------------->  
 # original is the name of remote , main name for local repo                  
-git push -u origin main --force 
+git push -u origin main --force   # -u mean  pull then push 
 
 <------ if need pull ------------------------------------------------------>  
 git pull origin main    # original is the place we pull from it 
