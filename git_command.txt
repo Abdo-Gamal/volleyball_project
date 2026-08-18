@@ -245,6 +245,7 @@ git branch -d <branch_name>: Delete the finished local branch to keep your works
 git branch -D <branch_name>:  Delete the unfinished  local branch 
 git push origin --delete <branch_name>       # delete branch form remote 
 
+git branch -m new_branch_name                  # rename branch after stand on it  
 
 <----------------------------------------------------------------------->
 <------------------ Best Practices for Branching & Merging-------------->
