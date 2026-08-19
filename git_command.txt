@@ -362,5 +362,15 @@ and you can bring your work back later using git stash pop.
 <---------------------------------------------------------------------------->
 <-----------------Ignoring Files And Directories----------------------------->
 
+touch .gitignore        #create file ignore 
+*.log                    # if write this in ignore file  git do not track or see it  
 
+# to do not track all file end with log except vip.log 
+*.log           # do not track all .log file 
+!vip.log        # track vip.log
 
+# if need add file and then commit it even this file in ignore file 
+#use -f or --force to add command like this 
+git add -f text.txt 
+
+# search on gitignore pattern if need extra info 
