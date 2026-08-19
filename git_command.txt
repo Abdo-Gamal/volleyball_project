@@ -1,376 +1,307 @@
-<--## initialize git  and create file use in tracing change -->
+<-------------------------------------------------------------------------------->
+<--------------------------- Start & Initialize --------------------------------->
+
+# Initialize Git and create files used in tracking changes
 git init 
 
-<---## to shaw  state of work space what commit ..etc -->
-git status 
-
-<----## move file to stage area --->
-
-git add .  or git add file name 
-ex  git add a.txt
-
-<----## move file to commit area --->
-
-git commit -m "any msg"
-
-<----## move file to local repo area --->
-git 
-
-
-<-----## to show all commit and commit id  ---->
-
-git log -v   
-
-
-<-----## to  move throw  commit ---------------------------------->
-git check commit_id  
-
-<-----## to show move throw  commit to last commit version  ------------------>
-git check master    "master is branch "
-
-
-<---- ## extra info ---->
-if file have  u letter in front of this name  this mean untracked file
-if file have  A letter in front of this name  this mean track file
-if file have  M letter in front of this name  this mean Modify file
-
-<----------------------------end of basic command ------------------------------>
-
-<-------## to create new branch ------------------------------------------------->
-git checkout -b branchName 
-
-<-------## to marge new branch with master --------------------------------- ---->
-git checkout main                 #go to master branch  and then type  
-git marge  new  branchName
-
-<---------delete git file that tracking project  and start from beegine------------>
+# Delete Git tracking (start from scratch)
 rm -rf .git
 git init
 
-<------ create ignore file -------------->
-
-echo -e "*.pth\n*.pkl\nvideos/\noutputs/\ndatasets/\n__pycache__/\n.ipynb_checkpoints/\n" > .gitignore
-
-
-
-
-<------------------------------------------------------------------------------------>
-<--------------------------- example ------------------------------------------------->
-# start from begin
-
+# Example: Full Clean Setup
 rm -rf .git
 git init
-
-# create add ignore 
 echo -e "*.pth\n*.pkl\nvideos/\noutputs/\ndatasets/\n__pycache__/\n.ipynb_checkpoints/\n" > .gitignore
-
-# add all file 
 git add .
 git commit -m "Initial commit with clean setup"
 git branch -M main
 
-<---------like oline repo i make with local ---->
-git remote add origin https://github.com/Abdo-Gamal/volleyball_project.git
-
-<-----------show the complete link for remote repo ------->
-git remote -v 
-<---------------push --------------------------------------------------------->  
-# original is the name of remote , main name for local repo                  
-git push -u origin main --force   # -u mean  pull then push 
-
-<------ if need pull ------------------------------------------------------>  
-git pull origin main    # original is the place we pull from it 
-
-<--------------------------change master branch to main------------------------------>
-git branch -M  main
-
-<-------------------------------------- when make branch --------------------------------->
-make new branch when start in new feature after complete marge in master/main 
-
-<----------------------------------------------- main rule --------------------------------->
-1- do not  write code in main branch 
-
-<--- when make push it push only  branch  you stand on it --------------------------------->
-
-<-----if you want push all branch ------------------------------------------------------>
-git push --all origin
-
-git pull = git fetch + git merge
-
-<---------------------------------------------------------------------------------------------------->
-<------------------------ some important case in switch between commit  ----------------------------------->
-marge is like ant commit 
-
-<---1#if wite some not wrong code or not work code and do not make commit ----->
- git restore    # go bach to last commit  and remove any wrong code 
-
-<---2# if need  see old code without delete new code must git commit id/hash ---------->
-git checkout <commit_hash>          # go to old version of code 
-git checkout -                      # go back to last commit stand on before checkout
- 
-git log                             # show all commit for branch i stand on now
-git log --all                       # show all commit for all branch 
-git log --oneline --graph --all     # show command as tree 
-
-<----3#  if need  undo or reverse commit  ,this make new commit reverse change of wrong commit ---->
-git revert <commit_hash>   # use it to make new commit , so other see and pull this commit  and do not delete or damage their work 
-marge is like ant commit 
-
-<---4# need to remove wong commit not exit again  , this is dengourase command----->
-git reset --hard <commit_hash>
-
-
-
-<----------------------------------------------------------------------------------->
-<------Pull Request (PR)------------------------------------------------------------>
-mean you have complete branch and need to marge 
-
-Case 1: Working with a team on the same project
-
-When you need it: If you are working in a company or on a group project with your colleagues,
- and everyone is sharing the same repository.
-
-What happens: Instead of editing the main code directly and risking breaking things,
- you create a separate "Branch" for yourself. Once you finish your work and Push it,
-  you open a Pull Request. It's like telling your team: "Hey guys, I'm done with my task. 
-Please review my code to make sure it works fine before we merge it into the main project."
-
-Case 2: Contributing to someone else's project (like Open Source)
-
-When you need it: If you find a GitHub project you like (like the Elzero project)
- and want to fix a bug or add a new feature, but you don't have the permission to 
- edit their code directly.
-What happens: You take a copy of their project into your own account 
-(a process called a Fork). You make your changes to your copy, Push it,
- and then open a Pull Request to the original owner. It's like telling them: 
- "I fixed this issue in my version. If you like my work, please pull it and add it to your 
- original project."
 
 <-------------------------------------------------------------------------------->
-<--------------------------------case--------------------------------------- ---->
-Push: Upload your finished branch to GitHub using git push origin featureX.
+<--------------------------- Basic Workflow ------------------------------------->
 
-Pull Request (PR): Open GitHub in your browser and click the green "Compare & Pull Request" button.
+# Show state of workspace, commits, etc.
+git status 
 
-Merge: Click "Merge" on GitHub to add your new code into the online main branch.
+# Move file(s) to stage area
+git add .                  # Add all files
+git add a.txt              # Add specific file
 
-Local is Old: Your laptop doesn't know about the online merge, so its local main branch is now outdated.
+# Move files to commit area (local repo)
+git commit -m "any msg"
 
-Pull: Run git pull origin main to download the updated code from GitHub to your laptop.
+# Extra Info (File Status Letters in VSCode/Terminal):
+# U : Untracked file
+# A : Tracked/Added file
+# M : Modified file
 
 
+<-------------------------------------------------------------------------------->
+<--------------------------- Branches & Merging --------------------------------->
+
+# Create and switch to new branch
+git checkout -b branchName 
+
+# Rename branch (while standing on it)
+git branch -m new_branch_name                  
+
+# Merge new branch with main
+git checkout main          # 1. Go to main branch first
+git merge branchName       # 2. Merge the branch into main
+
+# Delete branches
+git branch -d <branch_name>             # Delete finished local branch
+git branch -D <branch_name>             # Delete unfinished local branch (force)
+git push origin --delete <branch_name>  # Delete branch from remote
+
+# Main Rule:
+# 1- Do not write code in the main branch. Always use a feature branch.
 
 
-<-------------------------case2------------------------------------>
-1. Update Local Main 
+<-------------------------------------------------------------------------------->
+<--------------------------- Remote & GitHub ------------------------------------>
 
-The Steps:
-git checkout main
-git pull origin main
+# Link local repo to online repo
+git remote add origin https://github.com/Abdo-Gamal/volleyball_project.git
 
-When to use: Before starting any new work. To make sure your laptop has the latest updates.
+# Show the complete link for remote repo
+git remote -v 
 
-2. Create a Branch The Step: git checkout -b <branch_name>
+# Push to remote
+git push -u origin main --force    # -u means set upstream (link local to remote)
+git push origin featureX           # Push a specific branch
 
-When to use: When you start a new task (like fixing a bug or adding DDP). This keeps the main code safe.
+# Push all branches
+git push --all origin
 
-3. Save Work Locally 
+# Pull updates from remote
+git pull origin main               # origin is the place we pull from
+# Note: git pull = git fetch + git merge
 
-The Steps:
-git add <file_name>
-git commit -m "your message"
 
-When to use: When you finish a small, working part of your code. You can do this many times per day.
+<-------------------------------------------------------------------------------->
+<--------------------------- Navigating & Viewing History ----------------------->
 
-4. Push to GitHub 
+# Show all commits and commit IDs for the current branch
+git log 
 
-The Step: git push origin <branch_name>
+# Show all commits for all branches
+git log --all 
 
-When to use: When your task is 100% finished and you are ready to send it to GitHub.
+# Show commit history as a tree graph
+git log --oneline --graph --all  
 
-5. Open Pull Request 
+# Move through commits
+git checkout <commit_hash>         # Go to old version of code to view it
+git checkout -                     # Go back to the last branch stood on before checkout
+git checkout main                  # Move to the latest commit version in main branch
 
-The Step: Open the GitHub website and click the green "Compare & pull request" button.
 
-When to use: Right after you Push (Step 4), to see a visual comparison of your changes (green for added, red for deleted).
+<-------------------------------------------------------------------------------->
+<--------------------------- Undoing & Resetting -------------------------------->
 
-6. Merge PR 
+# Case 1: Wrote wrong code, but did NOT commit yet
+git restore .                      # Go back to last commit and remove wrong code
+git restore --staged fileName      # Return file from stage area to working area
+git clean -n                       # Delete all untracked files (dry run to see what will be deleted)
 
-The Step: Click the "Merge pull request" button on the GitHub website.
+# Case 2: Reverse a commit (creates a new commit to undo changes safely)
+git revert <commit_hash>           # Use it so others can pull this without damaging their work
 
-When to use: After you look at the visual comparison and make sure there are no mistakes.
+# Case 3: Delete wrong commit completely (Dangerous)
+git reset --hard <commit_hash>     # Deletes commit by changing HEAD pointer to an old commit
 
-7. Sync Laptop 
 
-The Steps:
-git checkout main
-git pull origin main
+<-------------------------------------------------------------------------------->
+<--------------------------- Config & Aliases ----------------------------------->
 
-When to use: After you click Merge on GitHub (Step 6).
- This downloads the final, merged code back to your laptop so you can start a new task.
-
-<--------------------------------------------------------------------->
-<-------------------------config------------------------------------>
-
-show all config 
-git config  -l 
+# Show all configs
+git config -l 
 git help config 
 
-add name 
-git config--global  user.name " abulrahman "
-git config--global  user.email "example@gmail.com "
+# Add Name & Email
+git config --global user.name "abdulrahman"
+git config --global user.email "example@gmail.com"
 
-delete name 
-git config--global  user.name "" or git config --global --unset user.name 
+# Delete Name
+git config --global --unset user.name 
 
-edit config by editor   "give you some color "
-git --config --global --edit 
+# Edit config by editor (gives you color coding)
+git config --global --edit 
 
+# SSH Key Setup (Note the capital -C)
+ssh-keygen -t rsa -b 4096 -C "bgmal917@gmail.com"
 
-<----------------------------------------------------------------------->
-<-------------------------public key------------------------------------>
+# Create Aliases (Shortcuts)
+git config --global alias.st status          # set st as alias for status 
+git config --global alias.st                 # show value of st 
+git st                                       # execute status using alias
 
-ssh-keygen  -t rsa -b 4096 -c "bgmal917@gmail.com"   not work 
-
-
-
-<----------------------------------------------------------------------->
-<----------------When to do this? (After your PR is merged on GitHub)---->
-
-git checkout main: Switch back to your primary stable branch.
-
-git pull origin main: Download the newly merged updates from GitHub to your laptop.
-
-git branch -d <branch_name>: Delete the finished local branch to keep your workspace clean.
-git branch -D <branch_name>:  Delete the unfinished  local branch 
-git push origin --delete <branch_name>       # delete branch form remote 
-
-git branch -m new_branch_name                  # rename branch after stand on it  
-
-<----------------------------------------------------------------------->
-<------------------ Best Practices for Branching & Merging-------------->
-Branch Naming: Always use clear prefixes like 
-feature/ (for new additions), 
-fix/ (for bug resolutions), 
-docs/ (for text/readme updates), 
-and experiment/ (for trying new ideas).
-
-Merge Pointers: A branch in Git is just a pointer to your latest commit.
- When you merge a branch into main, the main pointer simply moves forward
-  to include your new commits. The old branch pointer becomes useless and is
-   deleted to keep your workspace clean.
+git config --global alias.br branch          # set br as alias for branch
+git br                                       # show all branches using alias
 
 
-<----------------------------------------------------------------------->
-<------------------  Branching: Latest main vs. Old Commits-------------->
-In 99% of cases, you should always create a new branch from the latest main.
- This ensures your new work includes all recent project updates and prevents merge conflicts.
-  You should only go back to an older commit in rare emergencies,
-   such as rolling back from critical errors or recovering deleted code.
+<-------------------------------------------------------------------------------->
+<--------------------------- Git Stash ------------------------------------------>
+# Stash is like a box to save files in it to continue working on later.
+
+git stash               # Save files that exist in stage/working area to use later 
+git stash list          # Show all files in stash 
+git stash pop           # Pop files from stash back to working area 
 
 
-<----------------------------------------------------------------------->
-<--------What Happens if You Forget to Delete the Remote Branch?and pull------>
+<-------------------------------------------------------------------------------->
+<--------------------------- Ignoring Files ------------------------------------->
 
-Will it come back? No. Running git pull will not bring 
-the deleted branch back to your laptop.
+touch .gitignore        # Create ignore file 
 
-Why? git pull only updates the branch you are currently working on (like main).
- It does not recreate deleted local branches.
+*.log                   # Git will not track any file ending with .log  
+!vip.log                # Track vip.log even if *.log is ignored
 
-How to clean up? To completely remove it from the server (GitHub) and finish the job, 
-just run this command: git push origin --delete <branch_name>
-
-
-
-<---------Understanding git pull origin <branch_name> --------->
-The Misconception: You might think main in this command refers to your local branch. It does not!
-
-The Breakdown: In git pull origin main:
-
-origin: Refers to the remote server (GitHub).
-
-main: Refers to the source branch on the server that you want to download.
-
-Destination: The updates are always merged into your current active local 
-branch (wherever you are currently standing).
-
-The Golden Rule: If you want to update your local main branch safely, 
-you must switch to it first (git checkout main),
- and then run git pull origin main.
-
-<--------------------------------------------------------------------------->
-<--------------The Difference: git pull vs. git pull origin main----------->
-Case 1: Running git pull (No arguments)
-Git checks which branch you are currently on (e.g., wht). It then goes to the server, downloads the updates only for that specific branch, and merges them into your current work. It ignores the main branch completely.
-
-Case 2: Running git pull origin main (Specifying a branch)
-You are giving Git a strict command: "Go to the server, get the latest code from main, and merge it into the branch I am standing on right now." If you are currently on the wht branch,
-the remote main updates will be downloaded and merged directly into wht.
-
-
-<--------------------------------------------------------------------------->
-<--------------alais info--------------------------------------------------->
-#create alais to satus 
-git config --global alais.st status          # set st as alais to status 
-git config --global alais.st                 # show value of st 
-git st                                       # excute status
-
-# create alais to branch 
-
-git config --global alais.br branch         
-git br                                          # show all branch
-# some alias  google make it   
-seach on git alais list 
-
-
-<--------------------------------------------------------------------------->
-<------------------Stash info------------------------------------------------>
-slash like box save file in it to continuos work on after 
-git slash             #save file that exit in stage area  to use it after that 
-git stash list        # show all file in slash 
-fit slash pop         # pop file form slash to stage area 
-
-
-<--------------------------------------------------------------------------->
-<------------------Restore And Clean---------------------------------------->
-git restore --stage fileName     # return file form stage area 
-git clean -n                     # delete all untracking file "not in stage area" 
-
-<---------------------------------------------------------------------------->
-<------------------ Resetting The Head--------------------------------------->
-delete commit 
-git reset --hard commit_id        # it delete commit by change head to pointer on old commit 
-
-The Difference: Git Reset vs. Git Stash 
-
-git reset (Unstaging):
-It removes files from the Staging Area, but keeps your code on the screen.
- Use this when you accidentally typed git add and want to undo it, but you still 
- want to keep working on the code.
-
-git stash (Hiding):
-It takes all your uncommitted changes and hides them in a safe box, returning your files to a clean state.
-
-When to use stash:
-Use it when you are in the middle of messy, unfinished work and you urgently 
-need to switch to another branch. It cleans your screen so you can switch safely,
-and you can bring your work back later using git stash pop.
-
-
-
-<---------------------------------------------------------------------------->
-<-----------------Ignoring Files And Directories----------------------------->
-
-touch .gitignore        #create file ignore 
-*.log                    # if write this in ignore file  git do not track or see it  
-
-# to do not track all file end with log except vip.log 
-*.log           # do not track all .log file 
-!vip.log        # track vip.log
-
-# if need add file and then commit it even this file in ignore file 
-#use -f or --force to add command like this 
+# Force add a file even if it is in the ignore file
 git add -f text.txt 
 
-# search on gitignore pattern if need extra info 
+
+<-------------------------------------------------------------------------------->
+<--------------------------- Tagging And Releasing ------------------------------>
+
+# Tags are used to mark specific release points (like v1.0, v2.0) in your history.
+
+git tag                            # List all tags
+git tag v1.0.0                     # Create a lightweight tag on the current commit
+git tag -a v1.0.0 -m "Release 1"   # Create an annotated tag with a message
+
+git show v1.0.0                    # Show information and commit details about a specific tag
+
+git push origin v1.0.0             # Push a specific tag to GitHub
+git push origin --tags             # Push all local tags to GitHub
+
+git tag -d v1.0.0                  # Delete a tag locally
+git push origin --delete v1.0.0    # Delete a tag from GitHub
+
+<-------------------------------------------------------------------------------->
+<--------------------------- Tags & Releases ------------------------------------>
+
+<--- 1. The Concept (Why do we use them?) --->
+Tags and Releases act as a "Save Point" for a stable version of your project 
+(e.g., when a specific Baseline is fully working). It allows anyone to download 
+that exact working snapshot without getting confused by new daily updates.
+
+- Tag: A core Git feature. It is simply a permanent bookmark pointing to a specific commit.
+- Release: A GitHub feature. It wraps around your Tag to add a nice title, description, 
+  and automatically generates downloadable zip files for the code.
+
+<--- 2. How to create them? --->
+
+Step 1: On your Laptop (Terminal)
+- Create a tag on your current commit:  git tag v1.0
+- Push the tag to GitHub:               git push origin v1.0
+
+Step 2: On GitHub (Browser)
+1. Go to your repository and click "Releases" on the right side.
+2. Click "Draft a new release".
+3. Choose the tag you just pushed (v1.0).
+4. Write a Release Title and Describe the changes (Release notes).
+5. Click "Publish release".
+
+<--- 3. Can I make a Release without a Tag? --->
+No. Every Release MUST be attached to a Tag. However, if you forget to create the 
+tag locally in the terminal, you can just type a new tag name directly in the 
+GitHub Release page, and GitHub will automatically create the Tag for you.
+
+<--- 4. Where do the zip files come from? --->
+GitHub automatically generates the "Source code (zip)" and "(tar.gz)" files 
+based on the exact code present at the moment the Tag was created.
+
+<-------------------------------------------------------------------------------->
+<--------------------------- Concepts & Use Cases ------------------------------->
+
+<--- Pull Request (PR) --->
+Case 1: Working with a team on the same project
+When you need it: If you are working in a company or on a group project, and everyone is sharing the same repository.
+What happens: Instead of editing the main code directly, you create a separate "Branch". Once finished, you Push it and open a Pull Request. It tells your team: "Please review my code before we merge it."
+
+Case 2: Contributing to someone else's project (Open Source)
+When you need it: If you find a GitHub project and want to fix a bug, but lack permission to edit their code directly.
+What happens: You take a copy (Fork). You make changes, Push it, and open a Pull Request to the original owner: "I fixed this issue in my version. Please pull it to your original project."
+
+<--- The Full Workflow Case --->
+1. Push: Upload your finished branch to GitHub (git push origin featureX).
+2. PR: Open GitHub and click "Compare & Pull Request".
+3. Merge: Click "Merge" on GitHub to add code to the online main branch.
+4. Local is Old: Your laptop's main branch is now outdated.
+5. Pull: Run (git checkout main) then (git pull origin main) to download updated code.
+
+<--- Standard Daily Steps --->
+1. Update Local Main: git checkout main -> git pull origin main
+2. Create a Branch: git checkout -b <branch_name>
+3. Save Work Locally: git add . -> git commit -m "message"
+4. Push to GitHub: git push origin <branch_name>
+5. Open Pull Request on GitHub.
+6. Merge PR on GitHub.
+7. Sync Laptop: git checkout main -> git pull origin main
+8. Clean up: git branch -d <branch_name>
+
+<--- Best Practices for Branching & Merging --->
+Branch Naming: Always use clear prefixes like feature/ (additions), fix/ (bug resolutions), docs/ (documentation), and experiment/ (trying new ideas).
+Merge Pointers: A branch in Git is just a pointer to your latest commit. When you merge into main, the main pointer moves forward. The old branch pointer is deleted to keep workspace clean.
+Branching Latest main: Always create a new branch from the latest main to prevent merge conflicts. Only go back to old commits in emergencies.
+
+<--- What Happens if You Forget to Delete the Remote Branch? --->
+Will it come back? No. Running git pull will not bring the deleted branch back.
+Why? git pull only updates the current branch. It does not recreate deleted local branches.
+How to clean up? git push origin --delete <branch_name>
+
+<--- Understanding git pull origin <branch_name> --->
+The Misconception: main in this command refers to your local branch. It does not!
+The Breakdown: 
+- origin: Refers to the remote server.
+- main: Refers to the source branch on the server.
+- Destination: The updates are ALWAYS merged into your current active local branch.
+The Golden Rule: To update your local main safely, switch to it first (git checkout main), then run git pull origin main.
+
+<--- The Difference: git pull vs. git pull origin main --->
+Case 1: git pull (No arguments)
+Git checks which branch you are on, goes to the server, downloads updates ONLY for that specific branch, and merges them. It ignores main completely.
+
+Case 2: git pull origin main 
+You give a strict command: "Get latest code from main on the server, and merge it into the branch I am standing on right now."
+
+<--- The Difference: Git Reset vs. Git Stash --->
+git reset (Unstaging): Removes files from Staging Area, but keeps code on screen. Use to undo an accidental git add.
+git stash (Hiding): Takes all uncommitted changes and hides them in a safe box, returning files to a clean state. Use when in the middle of messy work and you urgently need to switch branches. Bring work back later using git stash pop.
+
+
+
+
+<-------------------------------------------------------------------------------->
+<--------------------------- Advanced Daily Tools ------------------------------->
+
+<--- 1. Viewing Exact Changes (git diff) --->
+# Before you commit, you might want to double-check exactly which lines of code changed.
+git diff                 # See exact additions (green) and deletions (red) in your working area.
+git diff --staged        # See the changes ONLY for files you already used 'git add' on.
+
+<--- 2. Fixing the Last Commit (Amend) --->
+# If you just made a commit but realized you forgot to include a file (like a config file 
+# or a Slurm batch script), or if you just want to fix a typo in the commit message:
+git add forgotten_file.py
+git commit --amend -m "New updated commit message"
+# IMPORTANT: Only use --amend if you haven't pushed the commit to GitHub yet!
+
+<--- 3. Handling Merge Conflicts (حل التعارض) --->
+# What happens if Git says "Merge conflict"? 
+# This happens when two branches changed the exact same line in a file. Git pauses the merge.
+# 
+# Step 1: Open the conflicted file in your editor (like VSCode).
+# Step 2: You will see Git added markers like this:
+<<<<<<< HEAD
+(Your current code in the branch you are standing on)
+=======
+(The incoming code from the branch you are trying to merge)
+>>>>>>> feature-branch
+
+# Step 3: Delete the markers (<<<<, ====, >>>>) and edit the code so it looks correct.
+# Step 4: Save the file, then tell Git the conflict is resolved by committing:
+git add conflicted_file.py
+git commit -m "Resolved merge conflict in the architecture file"
