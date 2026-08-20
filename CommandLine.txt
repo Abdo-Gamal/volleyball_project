@@ -1,0 +1,151 @@
+<-------------------------------------------------------------------------------->
+<--------------------------- Command Line Basics -------------------------------->
+
+* Shell: The program (the brain) that reads and understands your typed commands.
+* Terminal: The screen or window where you type commands and see the results.
+* CMD: The old, original command shell for Windows.
+* PowerShell: The newer and stronger shell that came after CMD in Windows.
+
+
+<-------------------------------------------------------------------------------->
+<--------------------------- Why Use The Command Line? -------------------------->
+
+* Lightweight: Uses very few system resources.
+* Smart Tab Completion: Press 'Tab' to auto-complete file paths and commands quickly.
+* Automation: You can use loops to repeat commands automatically.
+* Distraction-Free: It is purely text-based, keeping you focused.
+* Universal (Bash is Bash): The commands work the same way across different Linux systems.
+* Package Management: Makes it easy to install and update software.
+* Git Integration: It is the main place to use Git commands.
+* Stability: Commands rarely change over time; they stay the same.
+* Speed: Greatly increases your typing and working speed once you get used to it.
+
+<-------------------------------------------------------------------------------->
+<--------------------------- Command Line Examples (Use Cases) ------------------>
+
+* IP Config: Quickly check or configure your network and IP address.
+* Move Files: Move all text files within multiple subdirectories at once.
+* Delete by Extension: Delete all files that share a specific format or extension.
+* Quick Settings: Change system settings much faster than using a mouse.
+* Bulk Directory Creation: Create many folders (directories) all at the same time.
+* Edit System Files: Access and edit core system files quickly.
+* Automate Tasks: Create Batch scripts to automate repetitive tasks, such as Registry edits.
+
+<-------------------------------------------------------------------------------->
+<--------------------------- Command Line: Navigation & Folders ----------------->
+
+* cd ..                : Move up one folder level (go back to the parent directory).
+* cd <folder_name>     : Move inside a specific folder (e.g., cd cmder).
+* cd \                 : Jump directly to the root directory of the drive (e.g., C:\).
+* mkdir <folder_name>  : Create a new folder (e.g., mkdir Elzero).
+* clear                : Clean the terminal screen to start fresh.
+
+* Tip (Tab Completion) : If you type a partial name (like 'cd c') and press 'Tab', the terminal will show options or auto-complete the folder name for you.
+
+<-------------------------------------------------------------------------------->
+<--------------------------- Command Line: Making & Listing Directories ------->
+
+* mkdir dir1 dir2 dir3 : Create multiple folders at the exact same time by separating their names with spaces.
+* mkdir "Folder Name"  : Create a single folder that has a space in its name by wrapping it in double quotes.
+* ls                   : List the files and folders inside your current directory.
+* dir                  : List directory contents with more detailed information like dates, sizes, and directory tags.
+* mkdir ..\Folder      : Create a new folder inside the parent directory without leaving your current directory.
+* mkdir C:\Folder      : Create a folder in a specific path directly (like the C drive root) no matter where you currently are.
+* cd C:\Folder\        : Jump directly to a specific folder by typing its full absolute path.
+
+<-------------------------------------------------------------------------------->
+<--------------------------- Command Line: Moving, Copying & Deleting ----------->
+
+* The difference between (.) and (..):
+  - .   (Dot)      : Refers to your CURRENT directory.
+  - ..  (Dot-Dot)  : Refers to the PARENT directory (one step back/up).
+  - ../ or ..\     : Exactly the same as (..). The slash just formats it as a path.
+
+* mv <old_name> <new_name> : Rename a folder or file (e.g., mv Test Testing).
+* mv <folder> <dest>       : Move a folder into another existing folder (e.g., mv Testing fonts).
+* mv <folder> ..\          : Move a folder one step back to the parent directory.
+
+* cp -r <source> <dest>    : Copy a folder and everything inside it to a new location (e.g., cp -r css css2). 
+                             Note: (-r) stands for "recursive" which is required to copy folders.
+
+* rm -r <folder>           : Delete a folder and all its contents completely (e.g., rm -r css2).
+* rm -R <folder>           : Exactly the same as (-r). It recursively deletes the directory. 
+                             (Warning: Files deleted with 'rm' do not go to the Recycle Bin).
+
+
+<-------------------------------------------------------------------------------->
+<--------------------------- Command Line: Text, Echo & Cat --------------------->
+
+<--- 1. Writing Text (Echo) --->
+* echo "Text"            : Print the text directly to the terminal screen.
+* echo "Text" > file.txt : Create a new file and write the text into it. 
+                           (Warning: If the file already exists, '>' will OVERWRITE and delete the old content).
+* echo "Text" >> file.txt: APPEND the text to the end of an existing file without deleting the old content.
+
+<--- 2. Reading Text (Cat) --->
+* cat file.txt           : Read and display the contents of a file on the screen.
+* cat file1 file2        : Read and display the contents of multiple files back-to-back.
+* cat *                  : Read and display the contents of ALL files inside your current folder.
+
+<--- 3. Advanced Copying & Combining --->
+* cat file1 > file2      : Copy the exact contents of file1 into file2.
+* cat file1 >> file2     : Append the contents of file1 to the end of file2.
+* cat file1 file2 > file3: Combine (concatenate) the contents of multiple files and save them all together into a brand new file.
+
+<-------------------------------------------------------------------------------->
+<--------------------------- Command Line: Searching with Grep ------------------>
+
+<--- 1. Basic Search --->
+* grep "text" file.txt : Searches for a specific word or text inside a single file.
+* If the text is found, the terminal prints the matching line to the screen.
+* If the text is not found, the terminal simply returns to the next line with no output.
+
+<--- 2. Recursive Search (-r) --->
+* grep "text" -r : Searches for the text inside ALL files in your current directory and all sub-folders. 
+* The output for a recursive search shows both the file name and the matching text.
+* grep "text" -r folder_name : Searches for the text recursively, but limits the search to a specific folder (like the "osama" folder).
+* You cannot use grep directly on a folder without the -r flag; doing so will give you an error saying "Is a directory".
+
+<--- 3. List File Names Only (-l) --->
+* grep "text" -r -l : Searches recursively, but ONLY outputs the names of the files that contain the match. 
+* Using the -l flag hides the actual matching text lines and keeps your terminal screen cleaner.
+
+
+<-------------------------------------------------------------------------------->
+<--------------------------- Command Line: Files, System & Tree ----------------->
+
+<--- 1. File Creation, Checking & Renaming --->
+* touch <file_name>  : Creates a brand new, empty file (e.g., touch index.html).
+* file <file_name>   : Tells you exactly what type of data is inside a file (e.g., tells you if it's 'empty', 'ASCII text', or a 'Microsoft Word' document).
+* rename <old> <new> : Changes the name or the extension of a file (e.g., rename osama.docx osama.jpg).
+
+<--- 2. Getting Help (Manual) --->
+* move /?            : Shows the help manual and instructions for the 'move' command.
+* Note: The manual explains that 'move' can be used to move files or rename directories, and shows flags like /Y (suppress overwrite confirm) and /-Y (force confirm).
+
+<--- 3. System Processes --->
+* tasklist           : Displays a table of all currently running processes and applications on your system, showing details like Image Name, PID, and Mem Usage.
+
+<--- 4. Visualizing Folders --->
+* tree /a            : Displays a visual "tree" map of your current directory and all its subfolders using ASCII characters, making it very easy to understand the folder structure.
+
+<-------------------------------------------------------------------------------->
+<--------------------------- Command Line: Aliases, System Info & Piping -------->
+
+<--- 1. Creating and Managing Aliases --->
+* You can use the `alias` command by itself to display a list of all currently configured shortcuts and aliases.
+* To create a new alias, use the format `alias [alias_name]=[command]`.
+* For example, typing `alias os=osama` creates a shortcut where typing `os` will automatically execute `osama`.
+* You can type `alias /?` to view the help menu and available options for the alias command.
+* The `/d` option is used to delete a specific alias, formatted as `/d [alias]`.
+* Special notations can be used in aliases; for example, `$*` allows the alias to assume all parameters of the supplied command, and `$T` is the command separator used to string several commands together into one alias.
+
+<--- 2. System and User Information --->
+* The `whoami` command outputs your current computer name and username, such as `desktop-ri6dd0j\osama`.
+* The `systeminfo` command loads and displays system configuration, which includes Loading Network Card Information.
+
+<--- 3. Networking, Redirection, and Clipboard --->
+* The `ping` command (e.g., `ping elzero.org`) sends data packets to test the connection to a server, displaying round trip times and statistics.
+* You can redirect the output of a command into a text file using the `>` symbol, such as `ping elzero.org > ping_for_Elzero.txt`.
+* After saving the output, you can read the file's contents in the terminal using the `cat` command, for example, `cat ping_for_Elzero.txt`.
+* You can copy the output of a command directly to your computer's clipboard by piping it to `clip`, using the `|` symbol (e.g., `ipconfig | clip`).
