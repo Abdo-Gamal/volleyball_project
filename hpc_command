@@ -77,3 +77,20 @@
 
 <--- Execution --->
 * sbatch /nfs/slurm/assu002/projects/volleyball_project/run_volleyball.sh
+
+<-------------------------------------------------------------------------------->
+<--------------------------- Daily Workflow & VS Code --------------------------->
+
+<--- Method 1: VS Code Remote SSH (Recommended) --->
+# 1. Morning: Sync HPC changes to your local machine (Backup).
+# 2. Open VS Code and connect directly to the HPC via Remote SSH.
+# 3. Edit your code directly on the HPC. 
+# Result: No upload needed — you are editing directly on the server.
+
+<--- Method 2: Local Editing & Syncing --->
+# Sync Local -> HPC (Upload changes only):
+# You do not want to sync the dataset or model checkpoints to local — too large.
+rsync -avz --progress --exclude='*.pth' volleyball_project assu002@hpclogin.mohesr.gov.eg:/nfs/slurm/assu002/projects/
+
+# Sync HPC -> Local (Download changes only):
+rsync -avz --progress assu002@hpclogin.mohesr.gov.eg:/nfs/slurm/assu002/projects/volleyball_project/ volleyball_project
