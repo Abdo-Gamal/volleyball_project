@@ -10,7 +10,9 @@ class TrackingAdapter(BaseAdapter):
     """
 
     def load_sample(self, idx: int):
-        sample = self.raw[idx]
+        
+        real_idx = self._index[idx]
+        sample = self.raw[real_idx]
         
         if idx in self._cache:
             clip_tensor = self._cache[idx]
