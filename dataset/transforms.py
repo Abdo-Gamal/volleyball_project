@@ -35,17 +35,31 @@ IMAGENET_STD  = [0.229, 0.224, 0.225]
 #  BASE  (owns the skeleton — never change this class)
 # ─────────────────────────────────────────────────────────────
 class BaseTransform:
+   
+    """
+    Template Method base class for all image transformations.
+    
+    This class defines the skeleton of the transformation pipeline to ensure consistency 
+    across all baselines. It guarantees that Resize, ToTensor, and Normalize are applied 
+    in the correct order.
+    
+    Subclasses MUST override `get_train_augmentations()` to inject custom logic.
+    Subclasses MAY override `val()` if the validation cropping logic differs.
+    """
+        
     resize_size: int = 256
     crop_size:   int = 224
 
     def get_train_augmentations(self) -> list:
-        """Override in each subclass. Default: no augmentation."""
         return []
 
-    # ── full pipeline (use when NO cache) ─────────────────────
-    def train(self) -> transforms.Compose:
-        steps = [
-            transforms.Resize((self.resize_size, self.resize_size)),
+    def train(self, use_cache: bool = False) -> transforms.Compose:
+        steps = []
+        
+        if not use_cache:
+            steps.append(transforms.Resize((self.resize_size, self.resize_size)))
+            
+        steps += [
             transforms.RandomCrop((self.crop_size, self.crop_size)),
         ]
         steps += self.get_train_augmentations()
@@ -53,41 +67,20 @@ class BaseTransform:
             transforms.ToTensor(),
             transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
         ]
+        
         return transforms.Compose(steps)
 
-    def val(self) -> transforms.Compose:
-        return transforms.Compose([
-            transforms.Resize((self.resize_size, self.resize_size)),
-            transforms.CenterCrop((self.crop_size, self.crop_size)),
-            transforms.ToTensor(),
-            transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
-        ])
-
-    # ── short pipeline (use WITH cache — cache already did Resize) ──
-    def cached_train(self) -> transforms.Compose:
-        """
-        Cache stores images at 256×256.
-        This pipeline only needs: RandomCrop → augment → ToTensor → Normalize.
-        """
-        steps = [transforms.RandomCrop(self.crop_size)]
-        steps += self.get_train_augmentations()
+    def val(self, use_cache: bool = False) -> transforms.Compose:
+        steps = []
+        if not use_cache:
+            steps.append(transforms.Resize((self.resize_size, self.resize_size)))
+            
         steps += [
+            transforms.CenterCrop((self.crop_size, self.crop_size)),
             transforms.ToTensor(),
             transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
         ]
         return transforms.Compose(steps)
-
-    def cached_val(self) -> transforms.Compose:
-        """
-        Cache stores images at 256×256.
-        This pipeline only needs: CenterCrop → ToTensor → Normalize.
-        """
-        return transforms.Compose([
-            transforms.CenterCrop(self.crop_size),
-            transforms.ToTensor(),
-            transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
-        ])
-
 
 # ─────────────────────────────────────────────────────────────
 #  BASELINE 1
@@ -155,22 +148,13 @@ class B4LSTMTransform(BaseTransform):
 # ─────────────────────────────────────────────────────────────
 #  BASELINE 5 — LSTM
 # ─────────────────────────────────────────────────────────────
-from torchvision.transforms import v2  
-
 import torch
+from torchvision.transforms import v2  
+class BaseTransformV2:
 
-class B5PersonTransform:
-    resize_size: int = 224
-    crop_size:   int = 224
 
     def get_train_augmentations(self) -> list:
-        return [
-            v2.RandomHorizontalFlip(p=0.5),
-            v2.RandomApply([v2.RandomRotation(degrees=5)], p=0.7),
-            v2.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.1, hue=0.05),
-            v2.RandomGrayscale(p=0.05),
-            v2.RandomAdjustSharpness(sharpness_factor=1.3, p=0.1),
-        ]
+        return []
 
     def train(self) -> v2.Compose:
         steps = []
@@ -186,3 +170,15 @@ class B5PersonTransform:
             v2.ToDtype(torch.float32, scale=True),
             v2.Normalize(IMAGENET_MEAN, IMAGENET_STD),
         ])
+
+
+
+class B5PersonTransform(BaseTransformV2):
+    def get_train_augmentations(self) -> list:
+        return [
+            v2.RandomHorizontalFlip(p=0.5),
+            v2.RandomApply([v2.RandomRotation(degrees=5)], p=0.7),
+            v2.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.1, hue=0.05),
+            v2.RandomGrayscale(p=0.05),
+            v2.RandomAdjustSharpness(sharpness_factor=1.3, p=0.1),
+        ]
