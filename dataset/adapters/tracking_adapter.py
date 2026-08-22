@@ -2,10 +2,6 @@ import cv2
 import torch
 from dataset.adapters.base_adapter import BaseAdapter
 
-import cv2
-import torch
-from dataset.adapters.base_adapter import BaseAdapter
-
 class TrackingAdapter(BaseAdapter):
     """
     Adapter for tracking datasets.
