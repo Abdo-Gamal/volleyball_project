@@ -17,7 +17,7 @@ train:
   hidden_dim: 512
   lstm_num_layer : 1
 
-  print_PerClass: False 
+  print_PerClass: True 
 
 
 model:
