@@ -16,6 +16,10 @@ import torch
 from trainers.base_trainer import BaseTrainer
 
 
+ 
+# =========================================================================
+# 2. GroupTrainer
+# =========================================================================
 class GroupTrainer(BaseTrainer):
     """
     Trainer for Baseline 3 GroupModel.
@@ -34,36 +38,21 @@ class GroupTrainer(BaseTrainer):
         )
         trainer.train()
     """
-
-    # ── HOOK 1: x is a dict, not a tensor ────────────────────────────────────
+        
     def move_input(self, x):
         """
-        GroupModel receives {"persons": Tensor[B,N,3,H,W],
-                             "positions": Tensor[B,N,2]}.
-        Move every value to device.
-        """
+                GroupModel receives {"persons": Tensor[B,N,3,H,W],
+                                     "positions": Tensor[B,N,2]}.
+                Move every value to device.
+         """
         return {k: v.to(self.device, non_blocking=True) for k, v in x.items()}
 
-    # ── HOOK 3: checkpoint by F1 ──────────────────────────────────────────────
     def compute_metrics(self, all_preds: list, all_targets: list) -> float:
         return self.f1_score(all_targets, all_preds)
 
-    # ── HOOK 4: print acc and F1 ──────────────────────────────────────────────
-    def print_epoch(self, epoch: int, lr: float,
-                    train: dict, val: dict):
+    def print_epoch(self, epoch: int, lr: float, train: dict, val: dict):
         train_acc = self.accuracy(train["targets"], train["preds"])
         val_acc   = self.accuracy(val["targets"],   val["preds"])
-
         print(f"\nEpoch [{epoch}] | lr: {lr:.7f}")
-        print(
-            f"TRAIN → loss: {train['loss']:.3f} | "
-            f"acc: {train_acc:.3f} | F1: {train['metric']:.3f}"
-        )
-        print(
-            f"VAL   → loss: {val['loss']:.3f}   | "
-            f"acc: {val_acc:.3f}   | F1: {val['metric']:.3f}"
-        )
-
-    # ── HOOK 5: checkpoint filename ───────────────────────────────────────────
-    def _checkpoint_name(self) -> str:
-        return "best_group_model.pth"
+        print(f"TRAIN → loss: {train['loss']:.3f} | acc: {train_acc:.3f} | F1: {train['metric']:.3f}")
+        print(f"VAL   → loss: {val['loss']:.3f}   | acc: {val_acc:.3f}   | F1: {val['metric']:.3f}")
