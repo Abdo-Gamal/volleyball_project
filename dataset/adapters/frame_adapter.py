@@ -4,8 +4,7 @@ adapters/frame_adapter.py
 Used by: Baseline 1 (whole-frame classification).
 """
 
-from base_adapter import BaseAdapter
-
+from dataset.adapters.base_adapter import BaseAdapter
 class FrameAdapter(BaseAdapter):
     """
     One sample per frame.
