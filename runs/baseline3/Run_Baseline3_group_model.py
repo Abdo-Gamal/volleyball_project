@@ -17,7 +17,7 @@ if os.path.exists("/nfs/slurm/assu002"):
     PROJECT_ROOT = "/nfs/slurm/assu002/projects/volleyball_project/"
 else:
     # we are on local PC
-    PROJECT_ROOT = "/home/abdulrahmangamal/Desktop/volleyball_project/"
+    PROJECT_ROOT = "/home/abdulrahmangamal/volleyball_project/"
 
 sys.path.insert(0, PROJECT_ROOT)
 os.chdir(PROJECT_ROOT)
@@ -43,9 +43,9 @@ b3_cfg   = load_yaml("configs/baseline3_group.yaml")
 ON_HPC = os.path.exists("/nfs/slurm/assu002")
 
 if  not ON_HPC:
-    base_cfg['dataset']['root'] = "/home/abdulrahmangamal/Desktop/volleyball_data/videos"
-    b3_cfg['output']['root'] = "/home/abdulrahmangamal/Desktop/outputs"
-    b3_cfg['model']['path'] = "/home/abdulrahmangamal/Desktop/volleyball_project/outputs/baseline3/PersonModel_best.pth"
+    base_cfg['dataset']['root'] = "/home/abdulrahmangamal/volleyball_data/videos"
+    b3_cfg['output']['root'] = "/home/abdulrahmangamal/outputs"
+    b3_cfg['model']['path'] = "/home/abdulrahmangamal/volleyball_project/outputs/baseline3/PersonModel_best.pth"
 
 
 # In[24]:
