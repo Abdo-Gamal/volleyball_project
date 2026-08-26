@@ -119,8 +119,8 @@ from losses.multitask_loss import  MultiTaskLoss
 set_seed()
 
 tfm       = PersonTransform()
-train_transfroms = tfm.train()
-val_transforms   = tfm.val()
+train_transfroms = tfm.train(use_cache=True)
+val_transforms   = tfm.val(use_cache=True)
 
 # In[89]:
 

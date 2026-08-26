@@ -127,7 +127,7 @@ from losses.focal_loss import FocalLoss
 set_seed()
 
 tfm       = B5PersonTransform()
-train_transfroms = tfm.train()
+train_transforms = tfm.train()
 val_transforms   = tfm.val()
 
 # In[108]:
@@ -141,7 +141,7 @@ print(len(val_raw_sample))
 # In[109]:
 
 
-train_dataset=TrackingAdapter(train_raw_sample,train_transfroms,PERSON_ACTION_TO_IDX)
+train_dataset=TrackingAdapter(train_raw_sample,train_transforms,PERSON_ACTION_TO_IDX)
 val_dataset=TrackingAdapter(val_raw_sample,val_transforms,PERSON_ACTION_TO_IDX)
 print(len(train_dataset))
 print(len(val_dataset))

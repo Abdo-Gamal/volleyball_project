@@ -2,6 +2,10 @@ from dataset.adapters.base_adapter import BaseAdapter
 import numpy as np
 from PIL import Image
 
+from dataset.adapters.base_adapter import BaseAdapter
+import numpy as np
+from PIL import Image
+
 class PersonAdapter(BaseAdapter):
     """
     Expands one-entry-per-frame into one-entry-per-person.
@@ -9,13 +13,6 @@ class PersonAdapter(BaseAdapter):
     """
 
     PAD: float = 0.15
-
-    # 1. إيقاف تصغير الصورة هنا عشان تفضل بحجمها الأصلي وتطابق الإحداثيات
-    def open_image(self, path):
-        if path not in self._cache:
-            img = Image.open(path).convert("RGB")
-            self._cache[path] = np.array(img, dtype=np.uint8)
-        return Image.fromarray(self._cache[path])
 
     def build_index(self) -> list:
         """
@@ -35,27 +32,28 @@ class PersonAdapter(BaseAdapter):
         return index
 
     def load_sample(self, idx: int):
-        """
-        Args:
-            idx: index into self._index → (img_id, ann_offset)
+        if idx in self._cache:
+            crop_arr, label = self._cache[idx]
+            return Image.fromarray(crop_arr), label
 
-        Returns:
-            (PIL.Image crop, action_label_int)
-        """
         img_id, ann_idx = self._index[idx]
         sample = self.raw[img_id]
-        img    = self.open_image(sample["img"])
+        
+        img = self.open_image(sample["img"])
         tokens = sample["ann"]
 
         x, y, w, h = map(int, tokens[ann_idx:ann_idx + 4])
         action = tokens[ann_idx + 4].strip().lower()
 
-        # Pad bbox by PAD fraction on each side
         x1 = int(max(0,          x - w * self.PAD))
         y1 = int(max(0,          y - h * self.PAD))
         x2 = int(min(img.width,  x + w * (1 + self.PAD)))
-        
         y2 = int(min(img.height, y + h * (1 + self.PAD)))
 
 
-        return img.crop((x1, y1, x2, y2)), self.label_map[action]
+        crop = img.crop((x1, y1, x2, y2)).resize((256, 256))
+        label = self.label_map[action]
+
+        self._cache[idx] = (np.array(crop, dtype=np.uint8), label)
+
+        return crop, label

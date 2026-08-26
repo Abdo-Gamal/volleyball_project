@@ -119,8 +119,8 @@ from losses.focal_loss import FocalLoss
 set_seed()
 
 tfm       = B3FrameTransform()
-train_transfroms = tfm.train()
-val_transforms   = tfm.val()
+train_transfroms = tfm.train(use_cache=True)
+val_transforms   = tfm.val(use_cache=True)
 
 # In[28]:
 
@@ -199,7 +199,7 @@ trainer=GroupTrainer(
     epochs=epochs,
     output_dir=output_dir,
     class_map=GROUP_ACTION_TO_IDX,
-    print_perclass=print_evl_perclass,
+    print_perclass=print_perclass,
 )
 trainer.train()
 

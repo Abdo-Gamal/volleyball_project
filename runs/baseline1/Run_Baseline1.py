@@ -80,8 +80,8 @@ num_workers = os.cpu_count() if not ON_HPC else base_cfg.get('dataloader', {}).g
 # 4. Datasets & DataLoaders
 # =========================================================================
 tfm = Baseline1Transform()
-transform_train = tfm.train()
-transform_val   = tfm.val()
+transform_train = tfm.train(use_cache=True)
+transform_val   = tfm.val(use_cache=True)
 
 train_raw = VolleyballRawDataset(root, split_train)
 val_raw   = VolleyballRawDataset(root, split_val)

@@ -125,7 +125,7 @@ class PersonTransform(BaseTransform):
             transforms.RandomAdjustSharpness(sharpness_factor=1.3, p=0.1),
         ]
 
-    def val(self) -> transforms.Compose:
+    def val(self,use_cache: bool = False) -> transforms.Compose:
         # tight person crops: just resize, no center-crop
         return transforms.Compose([
             transforms.Resize((self.crop_size, self.crop_size)),
@@ -148,6 +148,7 @@ class B4LSTMTransform(BaseTransform):
 # ─────────────────────────────────────────────────────────────
 #  BASELINE 5 — LSTM
 # ─────────────────────────────────────────────────────────────
+
 import torch
 from torchvision.transforms import v2  
 class BaseTransformV2:
