@@ -39,7 +39,9 @@
 * Download HPC to Local (Backup changes):
   rsync -avz --progress \
   assu002@hpclogin.mohesr.gov.eg:/nfs/slurm/assu002/projects/volleyball_project/ volleyball_project
-
+* Download specific  file on hpc to local stand position 
+rsync -avz --progress \
+assu002@hpclogin.mohesr.gov.eg:/nfs/slurm/assu002/projects/volleyball_project/best_model.pth .
 
 <-------------------------------------------------------------------------------->
 <--------------------------- 3. Code Operations & Editing ----------------------->
