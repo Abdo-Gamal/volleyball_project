@@ -17,7 +17,7 @@ if os.path.exists("/nfs/slurm/assu002"):
     PROJECT_ROOT = "/nfs/slurm/assu002/projects/volleyball_project/"
 else:
     # we are on local PC
-    PROJECT_ROOT = "/home/abdulrahmangamal/Desktop/volleyball_project/"
+    PROJECT_ROOT = "/home/abdulrahmangamal/volleyball_project/"
 
 sys.path.insert(0, PROJECT_ROOT)
 os.chdir(PROJECT_ROOT)
@@ -43,8 +43,8 @@ b4_cfg   = load_yaml("configs/baseline4.yaml")
 ON_HPC = os.path.exists("/nfs/slurm/assu002")
 
 if  not ON_HPC:
-    base_cfg['dataset']['root'] = "/home/abdulrahmangamal/Desktop/volleyball_data/videos"
-    b4_cfg['output']['root'] = "/home/abdulrahmangamal/Desktop/outputs"
+    base_cfg['dataset']['root'] = "/home/abdulrahmangamal/volleyball_data/videos"
+    b4_cfg['output']['root'] = "/home/abdulrahmangamal/outputs"
 
 
 # In[104]:
@@ -116,8 +116,9 @@ from losses.focal_loss import FocalLoss
 set_seed()
 
 tfm       = B4LSTMTransform()
-train_transfroms = tfm.cached_train()
-val_transforms   = tfm.cached_val()
+
+train_transforms = tfm.train(use_cache=False)
+val_transforms   = tfm.val(use_cache=False)
 
 # In[108]:
 
@@ -130,7 +131,7 @@ print(len(val_raw_sample))
 # In[109]:
 
 
-train_dataset=ClipAdapter(train_raw_sample,train_transfroms,GROUP_ACTION_TO_IDX)
+train_dataset=ClipAdapter(train_raw_sample,train_transforms,GROUP_ACTION_TO_IDX)
 val_dataset=ClipAdapter(val_raw_sample,val_transforms,GROUP_ACTION_TO_IDX)
 print(len(train_dataset))
 print(len(val_dataset))
