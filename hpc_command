@@ -96,3 +96,116 @@ rsync -avz --progress --exclude='*.pth' volleyball_project assu002@hpclogin.mohe
 
 # Sync HPC -> Local (Download changes only):
 rsync -avz --progress assu002@hpclogin.mohesr.gov.eg:/nfs/slurm/assu002/projects/volleyball_project/ volleyball_project
+
+
+
+<-------------------------------------------------------------------------------->
+<-------------------------- How to Check Server Architecture — Key Commands ------>
+# CPU architecture
+lscpu | grep -E "Socket|Core|Thread|CPU|Model"
+
+# node hardware from Slurm
+scontrol show node gpu2
+
+# your account limits
+sacctmgr show qos
+
+# GPU from inside job
+python3 -c "import torch; print(torch.cuda.get_device_properties(0))"
+
+
+<-------------------------------------------------------------------------------->
+<-------------------------- How to Check Server Architecture  -------------------->
+
+# full CPU info
+lscpu
+
+# key CPU summary
+lscpu | grep -E "Socket|Core|Thread|CPU\(s\)|Model name"
+
+# memory info (no free command)
+awk '/MemTotal/{print "Total:", $2/1024/1024, "GB"}
+     /MemAvailable/{print "Free:", $2/1024/1024, "GB"}' /proc/meminfo
+
+# storage info (no df command)
+python3 -c "
+import os
+for p in ['/nfs/slurm/assu002', '/tmp', '/dev/shm']:
+    try:
+        s = os.statvfs(p)
+        total = s.f_blocks * s.f_frsize // 1024**3
+        free  = s.f_bfree  * s.f_frsize // 1024**3
+        print(f'{p:<30} total={total}GB  free={free}GB')
+    except: pass
+"
+
+# GPU info (no nvidia-smi flags)
+python3 -c "
+import torch
+print('GPU name :', torch.cuda.get_device_name(0))
+print('VRAM     :', torch.cuda.get_device_properties(0).total_memory//1024**3, 'GB')
+print('CUDA     :', torch.version.cuda)
+"
+
+# network interfaces
+ip -brief addr
+
+# node details from Slurm
+scontrol show nodes
+scontrol show node gpu2
+
+
+→ Shows full details: CPUs, memory, GPU, state, load
+scontrol show nodes | grep -E "NodeName|CPUTot|RealMemory|CfgTRES"
+→ Shows summary of all nodes
+sinfo -o "%N %G %m %C" --noheader
+
+
+→ Your Account Limits
+sacctmgr show qos
+→ Shows all QOS policies including your CPU/job limits
+sacctmgr show user assu002
+<-------------------------------------------------------------------------------->
+<-------------------------- Allowed Commands (tested and working)----------------->
+sbatch          # submit job
+squeue          # check jobs
+scancel         # cancel job
+sinfo           # cluster info
+scontrol        # detailed cluster info
+sacctmgr        # account info (limited)
+cat             # read file
+ls              # list files
+nano            # edit file
+find            # find files
+python3         # run python
+conda           # manage environments
+pip             # install packages
+rsync           # sync files
+scp             # copy files
+du              # folder sizes
+awk             # text processing
+grep            # search in files
+tail            # watch file
+head            # first lines of file
+mkdir           # create folder
+cp / mv / rm    # file operations
+chmod           # permissions
+hostname        # node name
+nproc           # CPU count
+uname           # system info
+ip              # network info
+
+<-------------------------------------------------------------------------------->
+<-------------------------- Blocked Commands------------------------------ ------>
+module          → use: conda activate env_name
+df              → use: python3 os.statvfs()
+free            → use: awk /proc/meminfo
+quota           → email admins
+lfs             → email admins
+nvidia-smi --query-gpu  → use: torch.cuda.memory_allocated()
+beegfs-ctl      → email admins
+#Blocked Inside Job Scripts 
+nvidia-smi --query-gpu=...   → use torch.cuda instead
+
+<-------------------------------------------------------------------------------->
+<-------------------------- How to Check Server Architecture — Key Commands ------>
