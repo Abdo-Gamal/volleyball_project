@@ -14,7 +14,7 @@ class BaseTrainer:
                  accuracy, f1_score, save_checkpoint,
                  device, epochs, output_dir, class_map,
                  print_perclass: bool = False,
-                 checkpoint_name: str = "best_model.pth"): # التعديل هنا: تمرير اسم الملف
+                 checkpoint_name: str = "best_model.pth"): 
 
         self.model           = model.to(device)
         self.train_loader    = train_loader
