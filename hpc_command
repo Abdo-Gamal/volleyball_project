@@ -208,4 +208,11 @@ beegfs-ctl      → email admins
 nvidia-smi --query-gpu=...   → use torch.cuda instead
 
 <-------------------------------------------------------------------------------->
-<-------------------------- How to Check Server Architecture — Key Commands ------>
+<-------------------------- alias------------------------------------------------>
+# ── HPC shortcuts ──────────────────────────
+alias sub='sbatch /nfs/slurm/assu002/projects/volleyball_project/run_volleyball.sh'
+alias log='tail -f /nfs/slurm/assu002/projects/volleyball_project/logs/baseline5.txt'
+alias st='squeue -u $USER'
+alias cancel='scancel $(squeue -u $USER -h -o "%i")'
+alias logshort='tail -f /nfs/slurm/assu002/projects/volleyball_project/logs/baseline5.txt | grep -E "Epoch|F1|GPU|PROFILING|Error|error"'
+
