@@ -4,7 +4,7 @@
 #SBATCH --time=5:00:00
 #SBATCH --cpus-per-task=5
 #SBATCH --mem=64G
-#SBATCH --gres=gpu:a100_1g.20gb:4
+#SBATCH --gres=gpu:a100_1g.20gb:1
 ##SBATCH --nodelist=gpu2
 
 echo "========================================"
