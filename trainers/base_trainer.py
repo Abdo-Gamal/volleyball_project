@@ -35,9 +35,9 @@ class BaseTrainer:
         self.use_amp = (device.type == "cuda")
         self.scaler  = amp.GradScaler(enabled=self.use_amp)
 
-        self.best_metric  = 0.0
+        self.best_Accuracy  = 0.0
         self.train_losses = []
-        self.val_metrics  = []
+        self.val_Accuracys  = []
         self.lr_history   = []
 
     def train(self):
@@ -49,19 +49,19 @@ class BaseTrainer:
 
             lr = self.optimizer.param_groups[0]["lr"]
             self.train_losses.append(train_result["loss"])
-            self.val_metrics.append(val_result["metric"])
+            self.val_Accuracys.append(val_result["f1"])
             self.lr_history.append(lr)
 
             self.print_epoch(epoch, lr, train_result, val_result)
 
-            if val_result["metric"] >= self.best_metric:
-                self.best_metric = val_result["metric"]
+            if val_result["f1"] >= self.best_Accuracy:
+                self.best_Accuracy = val_result["f1"]
                 path = os.path.join(self.output_dir, self.checkpoint_name)
                 self.save_checkpoint(
                     self.model, self.optimizer,
-                    epoch, self.best_metric, path
+                    epoch, self.best_Accuracy, path
                 )
-                print(f"==> New Best: {self.best_metric:.4f}  saved → {path}")
+                print(f"==> New Best: {self.best_Accuracy:.4f}  saved → {path}")
 
     def _run_epoch(self, loader, training: bool) -> dict:
         self.model.train(training)
@@ -102,7 +102,6 @@ class BaseTrainer:
                 total_loss  += loss.item()
                 batch_count += 1
                 
-                # التعديل هنا: جمع الخسائر الإضافية أوتوماتيكياً
                 for k, v in extras.items():
                     extra_losses_totals[k] = extra_losses_totals.get(k, 0.0) + v
 
@@ -116,12 +115,15 @@ class BaseTrainer:
             phase = "TRAIN" if training else "VAL"
             self._print_perclass(class_count, class_correct, phase)
 
-        metric = self.compute_metrics(all_preds, all_targets)
+        Accuracy = self.compute_Accuracys(all_preds, all_targets)
+        f1 = self.compute_f1(all_preds, all_targets)
+
         n = max(batch_count, 1)
 
         return {
             "loss":    total_loss / n,
-            "metric":  metric,
+            "Accuracy":  Accuracy,
+            "f1": f1,
             "preds":   all_preds,
             "targets": all_targets,
             "extras":  {k: v / n for k, v in extra_losses_totals.items()} # التعديل هنا: حساب المتوسط
@@ -138,13 +140,17 @@ class BaseTrainer:
         preds = outputs.argmax(dim=1)
         return loss, preds, y, {} 
 
-    def compute_metrics(self, all_preds: list, all_targets: list) -> float:
+    def compute_Accuracys(self, all_preds: list, all_targets: list) -> float:
         return self.accuracy(all_targets, all_preds)
+
+    def compute_f1(self, all_preds: list, all_targets: list) -> float:
+        return self.f1_score(all_targets, all_preds)
 
     def print_epoch(self, epoch: int, lr: float, train: dict, val: dict):
         print(f"\nEpoch [{epoch}] | lr: {lr:.7f}")
-        print(f"TRAIN → loss: {train['loss']:.3f} | metric: {train['metric']:.3f}")
-        print(f"VAL   → loss: {val['loss']:.3f}   | metric: {val['metric']:.3f}")
+        print(f"TRAIN → loss: {train['loss']:.3f} | acc: {train['Accuracy']:.3f} | f1: {train['f1']:.3f}")
+        print(f"VAL   → loss: {val['loss']:.3f}   | acc: {val['Accuracy']:.3f}   | f1: {val['f1']:.3f}")
+
 
     def _print_perclass(self, count: torch.Tensor, correct: torch.Tensor, phase: str):
         print(f"\n--- {phase} Per-Class ---")

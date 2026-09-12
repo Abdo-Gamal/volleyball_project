@@ -36,6 +36,10 @@
   rsync -avz --progress --exclude='*.pth' \
   volleyball_project assu002@hpclogin.mohesr.gov.eg:/nfs/slurm/assu002/projects/
 
+# if you in project folder
+rsync -avz --progress --exclude='*.pth' ./ 
+assu002@hpclogin.mohesr.gov.eg:/nfs/slurm/assu002/projects/volleyball_project/
+
 * Download HPC to Local (Backup changes):
   rsync -avz --progress \
   assu002@hpclogin.mohesr.gov.eg:/nfs/slurm/assu002/projects/volleyball_project/ volleyball_project
@@ -165,6 +169,9 @@ sinfo -o "%N %G %m %C" --noheader
 sacctmgr show qos
 → Shows all QOS policies including your CPU/job limits
 sacctmgr show user assu002
+#show memory consume 
+ watch -n 5 'sstat -j 10154.batch --format=JobID,MaxRSS,MaxVMSize,AveRSS'
+
 <-------------------------------------------------------------------------------->
 <-------------------------- Allowed Commands (tested and working)----------------->
 sbatch          # submit job
