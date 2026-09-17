@@ -58,6 +58,7 @@ class BaseAdapter(Dataset):
         PersonAdapter overrides this to return (img_id, ann_offset) pairs."""
         return list(range(len(self.raw)))
 
+
     # ── HOOK 2 — how to load one sample ──────────────────────────────────────
     def load_sample(self, idx):
         """Return (image_or_crop, label_int).
@@ -67,13 +68,10 @@ class BaseAdapter(Dataset):
         )
 
     # ── SHARED UTILITY ────────────────────────────────────────────────────────
+
     def open_image(self, path):
-        if path not in self._cache:
-            img = Image.open(path).convert("RGB").resize((256, 256))
-            self._cache[path] = np.array(img, dtype=np.uint8)
-        return Image.fromarray(self._cache[path])
-   
-    # reads from Drive ONCE, stores in RAM as 256×256, reuses every epoch
+         return Image.open(path).convert("RGB")
+
 
     # ── TEMPLATE — never override (unless return type differs) ────────────────
     def __len__(self) -> int:

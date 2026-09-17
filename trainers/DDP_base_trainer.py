@@ -41,28 +41,42 @@ class BaseTrainer:
         self.lr_history   = []
 
     def train(self):
+        # تحديد الزعيم (Master Node) عشان كارت واحد بس يطبع ويحفظ
+        is_master = int(os.environ.get("LOCAL_RANK", 0)) == 0
+
         for epoch in range(self.epochs):
+            
+            # تقليب الداتا بشكل مختلف في كل Epoch للكارتين
+            if hasattr(self.train_loader, 'sampler') and hasattr(self.train_loader.sampler, 'set_epoch'):
+                self.train_loader.sampler.set_epoch(epoch)
+
             train_result = self._run_epoch(self.train_loader, training=True)
             val_result   = self._run_epoch(self.val_loader,   training=False)
 
             self.scheduler.step()
 
-            lr = self.optimizer.param_groups[0]["lr"]
-            self.train_losses.append(train_result["loss"])
-            self.val_Accuracys.append(val_result["f1"])
-            self.lr_history.append(lr)
+            # حصر الطباعة والحفظ في الكارت الرئيسي فقط
+            if is_master:
+                lr = self.optimizer.param_groups[0]["lr"]
+                self.train_losses.append(train_result["loss"])
+                self.val_Accuracys.append(val_result["f1"])
+                self.lr_history.append(lr)
 
-            self.print_epoch(epoch, lr, train_result, val_result)
+                self.print_epoch(epoch, lr, train_result, val_result)
 
-            if val_result["f1"] >= self.best_Accuracy:
-                self.best_Accuracy = val_result["f1"]
-                path = os.path.join(self.output_dir, self.checkpoint_name)
-                self.save_checkpoint(
-                    self.model, self.optimizer,
-                    epoch, self.best_Accuracy, path
-                )
-                print(f"==> New Best: {self.best_Accuracy:.4f}  saved → {path}")
-
+                if val_result["f1"] >= self.best_Accuracy:
+                    self.best_Accuracy = val_result["f1"]
+                    path = os.path.join(self.output_dir, self.checkpoint_name)
+                    
+                    # استخراج الموديل الأصلي من غلاف الـ DDP عشان يشتغل معاك بره السيرفر بعدين
+                    model_to_save = self.model.module if hasattr(self.model, 'module') else self.model
+                    
+                    self.save_checkpoint(
+                        model_to_save, self.optimizer,
+                        epoch, self.best_Accuracy, path
+                    )
+                    print(f"==> New Best: {self.best_Accuracy:.4f}  saved → {path}")
+                    
     def _run_epoch(self, loader, training: bool) -> dict:
         self.model.train(training)
 

@@ -1,19 +1,10 @@
-"""
-adapters/person_adapter.py
-==========================
-Replaces the original person_adapter.py.
-
-Used by: Baseline 3 person model.
-Returns: (person_crop_tensor, action_label_int)
-
-build_index() expands the raw dataset:
-  raw has one entry per frame.
-  PersonAdapter expands to one entry per PERSON per frame.
-  Each index token is (img_id, annotation_offset).
-"""
+from dataset.adapters.base_adapter import BaseAdapter
+import numpy as np
+from PIL import Image
 
 from dataset.adapters.base_adapter import BaseAdapter
-
+import numpy as np
+from PIL import Image
 
 class PersonAdapter(BaseAdapter):
     """
@@ -41,25 +32,28 @@ class PersonAdapter(BaseAdapter):
         return index
 
     def load_sample(self, idx: int):
-        """
-        Args:
-            idx: index into self._index → (img_id, ann_offset)
+        if idx in self._cache:
+            crop_arr, label = self._cache[idx]
+            return Image.fromarray(crop_arr), label
 
-        Returns:
-            (PIL.Image crop, action_label_int)
-        """
         img_id, ann_idx = self._index[idx]
         sample = self.raw[img_id]
-        img    = self.open_image(sample["img"])
+        
+        img = self.open_image(sample["img"])
         tokens = sample["ann"]
 
         x, y, w, h = map(int, tokens[ann_idx:ann_idx + 4])
-        action      = tokens[ann_idx + 4].strip().lower()
+        action = tokens[ann_idx + 4].strip().lower()
 
-        # Pad bbox by PAD fraction on each side
         x1 = int(max(0,          x - w * self.PAD))
         y1 = int(max(0,          y - h * self.PAD))
         x2 = int(min(img.width,  x + w * (1 + self.PAD)))
         y2 = int(min(img.height, y + h * (1 + self.PAD)))
 
-        return img.crop((x1, y1, x2, y2)), self.label_map[action]
+
+        crop = img.crop((x1, y1, x2, y2)).resize((256, 256))
+        label = self.label_map[action]
+
+        self._cache[idx] = (np.array(crop, dtype=np.uint8), label)
+
+        return crop, label

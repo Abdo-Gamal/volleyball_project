@@ -7,16 +7,25 @@
 # 
 
 # In[101]:
-import os
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
-
-import torch
-torch.cuda.empty_cache()
-
 
 
 import sys
 import os
+#os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
+import torch
+import torch.distributed as dist
+from torch.utils.data.distributed import DistributedSampler
+
+local_rank = int(os.environ["LOCAL_RANK"])
+dist.init_process_group(backend="gloo")
+torch.cuda.set_device(local_rank)
+
+
+
+torch.cuda.empty_cache()
+
+
 # detect which machine we are on
 if os.path.exists("/nfs/slurm/assu002"):
     # we are on HPC                  
@@ -58,8 +67,6 @@ if  not ON_HPC:
 
 
 import yaml
-import os
-import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from torch import optim
@@ -77,7 +84,7 @@ val_videos=base_cfg['splits']['val']
 num_workers=base_cfg['dataloader']['num_workers'] 
 pre_fetch_factor=base_cfg['dataloader']['pre_fetch_factor'] 
 
-device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 ###################################################################
 freeze_backbone=b5_cfg['model']['freeze_backbone']
 
@@ -111,7 +118,7 @@ from models.backbones.resnet50 import ResNet50
 from models.baseline_model5.baseline5 import  B5Model
 
 
-from trainers.base_trainer  import BaseTrainer
+from trainers.DDP_base_trainer  import BaseTrainer
 
 from utils.checkpoint import save_checkpoint,load_checkpoint
 from utils.label_maps import PERSON_ACTION_TO_IDX,PERSON_IDX_TO_ACTION
@@ -127,7 +134,7 @@ from losses.focal_loss import FocalLoss
 set_seed()
 
 tfm       = B5PersonTransform()
-train_transfroms = tfm.train()
+train_transforms = tfm.train()
 val_transforms   = tfm.val()
 
 # In[108]:
@@ -141,7 +148,7 @@ print(len(val_raw_sample))
 # In[109]:
 
 
-train_dataset=TrackingAdapter(train_raw_sample,train_transfroms,PERSON_ACTION_TO_IDX)
+train_dataset=TrackingAdapter(train_raw_sample,train_transforms,PERSON_ACTION_TO_IDX)
 val_dataset=TrackingAdapter(val_raw_sample,val_transforms,PERSON_ACTION_TO_IDX)
 print(len(train_dataset))
 print(len(val_dataset))
@@ -150,26 +157,32 @@ print(len(val_dataset))
 # In[110]:
 
 
-trainloader=build_dataloader(train_dataset,batch_size,num_workers,shuffle=True,sampler=None,drop_last=False,prefetch_factor=pre_fetch_factor )
-valloader=build_dataloader(val_dataset,batch_size,num_workers,shuffle=False,sampler=None,drop_last=False,prefetch_factor=pre_fetch_factor )
+train_sampler = DistributedSampler(train_dataset)
+train_loader=build_dataloader(train_dataset,batch_size,num_workers,shuffle=False,sampler=train_sampler,drop_last=False,prefetch_factor=pre_fetch_factor )
+
+val_sampler = DistributedSampler(val_dataset)
+val_loader=build_dataloader(val_dataset,batch_size,num_workers,shuffle=False,sampler=val_sampler,drop_last=False,prefetch_factor=pre_fetch_factor )
 
 
 
 # In[111]:
 
+device = torch.device(f"cuda:{local_rank}")
 
 backbone=ResNet50()
-
 # 1. build person model
 backbone = ResNet50()
 B5Model = B5Model(backbone,num_classes=num_classes,drop_p=drop_p,hidden_dim=hidden_dim,num_layers=lstm_num_layer,bidirectional=True)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-if torch.cuda.device_count() > 1:
-    print(f"=== Using {torch.cuda.device_count()} GPUs! ===")
-    B5Model = torch.nn.DataParallel(B5Model)
 
-B5Model = B5Model.to(device)
+B5Model = B5Model.to(local_rank)
+B5Model = torch.nn.parallel.DistributedDataParallel(B5Model, device_ids=[local_rank])
+
+#if torch.cuda.device_count() > 1:
+#    print(f"=== Using {torch.cuda.device_count()} GPUs! ===")
+#    B5Model = torch.nn.DataParallel(B5Model)
+
+#B5Model = B5Model.to(device)
 
 
 optimizer=optim.AdamW(
@@ -188,7 +201,7 @@ loss_fn = FocalLoss(gamma=gamma)
 # In[112]:
 
 
-visualize_samples(train_dataset, label_map=PERSON_IDX_TO_ACTION)
+#visualize_samples(train_dataset, label_map=PERSON_IDX_TO_ACTION)
 
 
 # In[ ]:
@@ -197,8 +210,8 @@ visualize_samples(train_dataset, label_map=PERSON_IDX_TO_ACTION)
 
 trainer=BaseTrainer(
     model=B5Model,
-    train_loader=trainloader,
-    val_loader=valloader,
+    train_loader=train_loader,
+    val_loader=val_loader,
     optimizer=optimizer,
     scheduler=scheduler,
     loss_fn=loss_fn,
@@ -212,6 +225,9 @@ trainer=BaseTrainer(
     print_perclass=print_perclass,
 )
 trainer.train()
+
+
+dist.destroy_process_group()
 
 # In[ ]:
 

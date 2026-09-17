@@ -7,6 +7,12 @@
 # 
 
 # In[101]:
+import os
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
+import torch
+torch.cuda.empty_cache()
+
 
 
 import sys
@@ -32,7 +38,7 @@ def load_yaml(path):
         return yaml.safe_load(f)
 
 base_cfg = load_yaml("configs/base.yaml")
-b4_cfg   = load_yaml("configs/baseline4.yaml")
+b5_cfg   = load_yaml("configs/baseline5.yaml")
 
 
 # In[103]:
@@ -44,7 +50,8 @@ ON_HPC = os.path.exists("/nfs/slurm/assu002")
 
 if  not ON_HPC:
     base_cfg['dataset']['root'] = "/home/abdulrahmangamal/volleyball_data/videos"
-    b4_cfg['output']['root'] = "/home/abdulrahmangamal/outputs"
+    base_cfg['dataset']['tracking_annotation'] = "/home/abdulrahmangamal/volleyball_data/volleyball_tracking_annotation"
+    b5_cfg['output']['root'] = "/home/abdulrahmangamal/outputs"
 
 
 # In[104]:
@@ -62,7 +69,8 @@ from torch import optim
 
 
 root=base_cfg["dataset"]['root']
-num_classes=base_cfg['dataset']['num_classes']
+tracking_annotation=base_cfg["dataset"]["tracking_annotation"]
+num_classes=base_cfg['dataset']['action_person']
 
 train_videos=base_cfg['splits']['train']
 val_videos=base_cfg['splits']['val']
@@ -71,17 +79,19 @@ pre_fetch_factor=base_cfg['dataloader']['pre_fetch_factor']
 
 device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 ###################################################################
-freeze_backbone=b4_cfg['model']['freeze_backbone']
+freeze_backbone=b5_cfg['model']['freeze_backbone']
 
-batch_size=b4_cfg['train']['batch_size']
-epochs=b4_cfg['train']['epochs']
-lr=b4_cfg['train']['lr']
-weight_decay=b4_cfg['train']['weight_decay']
-eta_min=b4_cfg['train']['eta_min']
-drop_p=b4_cfg['train']['drop_p']
-gamma=b4_cfg['train']['gamma']
-print_perclass=b4_cfg['train']['print_PerClass']    
-output_dir=b4_cfg['output']['root']
+batch_size=b5_cfg['train']['batch_size']
+epochs=b5_cfg['train']['epochs']
+lr=b5_cfg['train']['lr']
+weight_decay=b5_cfg['train']['weight_decay']
+eta_min=b5_cfg['train']['eta_min']
+drop_p=b5_cfg['train']['drop_p']
+gamma=b5_cfg['train']['gamma']
+hidden_dim=b5_cfg['train']['hidden_dim']
+lstm_num_layer=b5_cfg['train']['lstm_num_layer']
+print_perclass=b5_cfg['train']['print_PerClass']    
+output_dir=b5_cfg['output']['root']
 
 
 
@@ -91,23 +101,24 @@ output_dir=b4_cfg['output']['root']
 
 from utils.seed import  set_seed
 
-from dataset.raw_dataset import VolleyballRawDataset
-from dataset.transforms  import B4LSTMTransform 
-from dataset.adapters.Clip_Adapter import ClipAdapter
-from dataset.data_loader import build_dataloader
+from dataset.tracking_raw_dataset import TrackingRawDataset 
+from dataset.adapters.tracking_adapter   import TrackingAdapter
 
+from dataset.transforms  import B5PersonTransform 
+from dataset.data_loader import build_dataloader
+##############
 from models.backbones.resnet50 import ResNet50
-from models.baseline_model4.baseline4 import  B4ClipModel
+from models.baseline_model5.baseline5 import  B5Model
 
 
 from trainers.base_trainer  import BaseTrainer
 
 from utils.checkpoint import save_checkpoint,load_checkpoint
-from utils.label_maps import GROUP_ACTION_TO_IDX,GROUP_IDX_TO_ACTION
+from utils.label_maps import PERSON_ACTION_TO_IDX,PERSON_IDX_TO_ACTION
 from utils.metrics import accuracy ,f1_calc
 from utils.visualization import visualize_samples
 
-from losses.focal_loss import FocalLoss
+from losses.focal_loss import FocalLoss, get_class_weights_smoothed
 
 
 # In[107]:
@@ -115,24 +126,23 @@ from losses.focal_loss import FocalLoss
 
 set_seed()
 
-tfm       = B4LSTMTransform()
-
-train_transforms = tfm.train(use_cache=False)
-val_transforms   = tfm.val(use_cache=False)
+tfm       = B5PersonTransform()
+train_transforms = tfm.train()
+val_transforms   = tfm.val()
 
 # In[108]:
 
 
-train_raw_sample=VolleyballRawDataset(root,train_videos)
-val_raw_sample=VolleyballRawDataset(root,val_videos)
+train_raw_sample=TrackingRawDataset(root,tracking_annotation,train_videos)
+val_raw_sample=TrackingRawDataset(root,tracking_annotation,val_videos)
 print(len(train_raw_sample))
 print(len(val_raw_sample))
 
 # In[109]:
 
 
-train_dataset=ClipAdapter(train_raw_sample,train_transforms,GROUP_ACTION_TO_IDX)
-val_dataset=ClipAdapter(val_raw_sample,val_transforms,GROUP_ACTION_TO_IDX)
+train_dataset=TrackingAdapter(train_raw_sample,train_transforms,PERSON_ACTION_TO_IDX)
+val_dataset=TrackingAdapter(val_raw_sample,val_transforms,PERSON_ACTION_TO_IDX)
 print(len(train_dataset))
 print(len(val_dataset))
 
@@ -148,15 +158,16 @@ valloader=build_dataloader(val_dataset,batch_size,num_workers,shuffle=False,samp
 # In[111]:
 
 
-backbone=ResNet50()
-
 # 1. build person model
 backbone = ResNet50()
-ClipModel = B4ClipModel(backbone)
+B5Model = B5Model(backbone,num_classes=num_classes,drop_p=drop_p,hidden_dim=hidden_dim,num_layers=lstm_num_layer,bidirectional=True)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+B5Model = B5Model.to(device)
 
 
 optimizer=optim.AdamW(
-    filter(lambda p :p.requires_grad,ClipModel.parameters()),
+    filter(lambda p :p.requires_grad,B5Model.parameters()),
     lr=lr,
     weight_decay=weight_decay
 )
@@ -165,13 +176,24 @@ scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
     eta_min=eta_min
     )
 
-loss_fn = FocalLoss(gamma=gamma)
+
+# 1. Provide the exact sample counts from your training logs
+train_class_counts = [17500, 2376, 167, 576, 1342, 1074, 597, 539, 1534]
+
+# 2. Compute the Alpha weights tensor
+alpha_weights = get_class_weights_smoothed(train_class_counts)
+
+# 3. Instantiate your modified FocalLoss 
+# Make sure to set gamma=2.0 (or read it from your b5_cfg)
+loss_fn = FocalLoss(alpha=alpha_weights, gamma=gamma)
+
+
 
 
 # In[112]:
 
 
-visualize_samples(train_dataset, label_map=GROUP_IDX_TO_ACTION)
+#visualize_samples(train_dataset, label_map=PERSON_IDX_TO_ACTION)
 
 
 # In[ ]:
@@ -179,7 +201,7 @@ visualize_samples(train_dataset, label_map=GROUP_IDX_TO_ACTION)
 
 
 trainer=BaseTrainer(
-    model=ClipModel,
+    model=B5Model,
     train_loader=trainloader,
     val_loader=valloader,
     optimizer=optimizer,
@@ -191,7 +213,7 @@ trainer=BaseTrainer(
     device=device,
     epochs=epochs,
     output_dir=output_dir,
-    class_map=GROUP_ACTION_TO_IDX,
+    class_map=PERSON_ACTION_TO_IDX,
     print_perclass=print_perclass,
 )
 trainer.train()
