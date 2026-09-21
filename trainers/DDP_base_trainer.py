@@ -1,12 +1,13 @@
 import os
 import torch
+import torch.distributed as dist          # [CHANGED 0] needed for the 3 helper functions at the bottom
 from torch import amp
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark     = True
 
 # =========================================================================
-# 1. BaseTrainer 
+# 1. BaseTrainer  (your file, with 5 small changes marked  [CHANGED n])
 # =========================================================================
 class BaseTrainer:
     def __init__(self, model, train_loader, val_loader,
@@ -35,18 +36,19 @@ class BaseTrainer:
         self.use_amp = (device.type == "cuda")
         self.scaler  = amp.GradScaler(enabled=self.use_amp)
 
+        # [CHANGED 1] the master is GLOBAL rank 0 (RANK), not LOCAL_RANK.
+        #             On one node they are the same; on two nodes LOCAL_RANK==0 is true twice.
+        self.is_master = int(os.environ.get("RANK", 0)) == 0
+
         self.best_Accuracy  = 0.0
         self.train_losses = []
         self.val_Accuracys  = []
         self.lr_history   = []
 
     def train(self):
-        # تحديد الزعيم (Master Node) عشان كارت واحد بس يطبع ويحفظ
-        is_master = int(os.environ.get("LOCAL_RANK", 0)) == 0
-
         for epoch in range(self.epochs):
             
-            # تقليب الداتا بشكل مختلف في كل Epoch للكارتين
+            # different shuffling in every epoch
             if hasattr(self.train_loader, 'sampler') and hasattr(self.train_loader.sampler, 'set_epoch'):
                 self.train_loader.sampler.set_epoch(epoch)
 
@@ -55,8 +57,8 @@ class BaseTrainer:
 
             self.scheduler.step()
 
-            # حصر الطباعة والحفظ في الكارت الرئيسي فقط
-            if is_master:
+            # print / save only on the master
+            if self.is_master:
                 lr = self.optimizer.param_groups[0]["lr"]
                 self.train_losses.append(train_result["loss"])
                 self.val_Accuracys.append(val_result["f1"])
@@ -68,7 +70,7 @@ class BaseTrainer:
                     self.best_Accuracy = val_result["f1"]
                     path = os.path.join(self.output_dir, self.checkpoint_name)
                     
-                    # استخراج الموديل الأصلي من غلاف الـ DDP عشان يشتغل معاك بره السيرفر بعدين
+                    # save the model WITHOUT the DDP wrapper
                     model_to_save = self.model.module if hasattr(self.model, 'module') else self.model
                     
                     self.save_checkpoint(
@@ -125,26 +127,59 @@ class BaseTrainer:
                         class_count[cls]   += mask.sum()
                         class_correct[cls] += (preds[mask] == cls).sum()
 
+        # [CHANGED 2] per-class table: add the counters of ALL GPUs, print on the master only
+        #             (before: every GPU printed its own table -> 4 mixed-up copies, each on 1/4 of the data)
         if self.print_perclass:
-            phase = "TRAIN" if training else "VAL"
-            self._print_perclass(class_count, class_correct, phase)
+            class_count   = self._sum_over_gpus(class_count)
+            class_correct = self._sum_over_gpus(class_correct)
+            if self.is_master:
+                phase = "TRAIN" if training else "VAL"
+                self._print_perclass(class_count, class_correct, phase)
+
+        # [CHANGED 3] accuracy / f1 on the predictions of ALL GPUs (before: only this GPU's quarter)
+        all_preds   = [self._gather_all(all_preds)]
+        all_targets = [self._gather_all(all_targets)]
 
         Accuracy = self.compute_Accuracys(all_preds, all_targets)
         f1 = self.compute_f1(all_preds, all_targets)
 
-        n = max(batch_count, 1)
+        # [CHANGED 4] mean loss over ALL GPUs
+        stats = self._sum_over_gpus(torch.tensor([total_loss, float(batch_count)],
+                                                 dtype=torch.float64, device=self.device))
+        mean_loss = stats[0].item() / max(stats[1].item(), 1.0)
+
+        n = max(batch_count, 1)      # extras stay local (baseline5 has none)
 
         return {
-            "loss":    total_loss / n,
+            "loss":    mean_loss,
             "Accuracy":  Accuracy,
             "f1": f1,
             "preds":   all_preds,
             "targets": all_targets,
-            "extras":  {k: v / n for k, v in extra_losses_totals.items()} # التعديل هنا: حساب المتوسط
+            "extras":  {k: v / n for k, v in extra_losses_totals.items()}
         }
 
     # =========================================================================
-    #  HOOKS 
+    #  [CHANGED 5] helpers that talk to the other GPUs
+    # =========================================================================
+    def _sum_over_gpus(self, t):
+        """sum a tensor over all GPUs (on the CPU, which is what gloo handles best)"""
+        if dist.is_available() and dist.is_initialized():
+            t = t.detach().cpu()
+            dist.all_reduce(t, op=dist.ReduceOp.SUM)
+        return t
+
+    def _gather_all(self, tensors):
+        """concatenate the predictions of every GPU into one tensor, identical on all GPUs"""
+        t = torch.cat(tensors).cpu() if len(tensors) else torch.zeros(0, dtype=torch.long)
+        if dist.is_available() and dist.is_initialized():
+            parts = [None] * dist.get_world_size()
+            dist.all_gather_object(parts, t)
+            t = torch.cat(parts)
+        return t.to(self.device)
+
+    # =========================================================================
+    #  HOOKS  (unchanged)
     # =========================================================================
     def move_input(self, x):
         return x.to(self.device, non_blocking=True)

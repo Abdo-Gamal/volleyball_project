@@ -1,29 +1,22 @@
 #!/usr/bin/env python
 # coding: utf-8
-
-# # project    
-# 
-# 
-# 
-
-# In[101]:
-
+# Your script, with small changes marked  [CHANGED n]
 
 import sys
 import os
-#os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
-
 import torch
 import torch.distributed as dist
 from torch.utils.data.distributed import DistributedSampler
 
-local_rank = int(os.environ["LOCAL_RANK"])
-dist.init_process_group(backend="gloo")
+local_rank  = int(os.environ["LOCAL_RANK"])   # number of this process INSIDE its node (0..3)
+global_rank = int(os.environ["RANK"])         # [CHANGED 1] number of this process among ALL processes; 0 = the "leader"
+dist.init_process_group(backend="gloo")       # gloo: the only backend that works with MIG slices
+
 torch.cuda.set_device(local_rank)
-
-
-
 torch.cuda.empty_cache()
+
+# [CHANGED 2] every process prints ONE line, so you can see that each one got its own GPU slice
+print(f"[rank {global_rank}] cuda:{local_rank} -> {torch.cuda.get_device_name(local_rank)}", flush=True)
 
 
 # detect which machine we are on
@@ -37,8 +30,6 @@ else:
 sys.path.insert(0, PROJECT_ROOT)
 os.chdir(PROJECT_ROOT)
 
-# In[102]:
-
 
 import yaml
 
@@ -46,12 +37,8 @@ def load_yaml(path):
     with open(path, "r") as f:
         return yaml.safe_load(f)
 
-base_cfg = load_yaml("configs/base.yaml")
-b5_cfg   = load_yaml("configs/baseline5.yaml")
-
-
-# In[103]:
-
+base_cfg = load_yaml("configs/base_ddp.yaml")
+b5_cfg   = load_yaml("configs/baseline5_ddp.yaml")
 
 
 # ── fix data path based on machine ──────────────
@@ -63,16 +50,9 @@ if  not ON_HPC:
     b5_cfg['output']['root'] = "/home/abdulrahmangamal/outputs"
 
 
-# In[104]:
-
-
-import yaml
 from torch import nn
 from torch.utils.data import DataLoader
 from torch import optim
-
-
-# In[105]:
 
 
 root=base_cfg["dataset"]['root']
@@ -84,7 +64,6 @@ val_videos=base_cfg['splits']['val']
 num_workers=base_cfg['dataloader']['num_workers'] 
 pre_fetch_factor=base_cfg['dataloader']['pre_fetch_factor'] 
 
-#device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 ###################################################################
 freeze_backbone=b5_cfg['model']['freeze_backbone']
 
@@ -101,11 +80,6 @@ print_perclass=b5_cfg['train']['print_PerClass']
 output_dir=b5_cfg['output']['root']
 
 
-
-
-# In[106]:
-
-
 from utils.seed import  set_seed
 
 from dataset.tracking_raw_dataset import TrackingRawDataset 
@@ -120,15 +94,11 @@ from models.baseline_model5.baseline5 import  B5Model
 
 from trainers.DDP_base_trainer  import BaseTrainer
 
-from utils.checkpoint import save_checkpoint,load_checkpoint
-from utils.label_maps import PERSON_ACTION_TO_IDX,PERSON_IDX_TO_ACTION
+from utils.checkpoint import save_checkpoint
+from utils.label_maps import PERSON_ACTION_TO_IDX
 from utils.metrics import accuracy ,f1_calc
-from utils.visualization import visualize_samples
 
 from losses.focal_loss import FocalLoss
-
-
-# In[107]:
 
 
 set_seed()
@@ -137,56 +107,41 @@ tfm       = B5PersonTransform()
 train_transforms = tfm.train()
 val_transforms   = tfm.val()
 
-# In[108]:
-
 
 train_raw_sample=TrackingRawDataset(root,tracking_annotation,train_videos)
 val_raw_sample=TrackingRawDataset(root,tracking_annotation,val_videos)
-print(len(train_raw_sample))
-print(len(val_raw_sample))
-
-# In[109]:
-
 
 train_dataset=TrackingAdapter(train_raw_sample,train_transforms,PERSON_ACTION_TO_IDX)
 val_dataset=TrackingAdapter(val_raw_sample,val_transforms,PERSON_ACTION_TO_IDX)
-print(len(train_dataset))
-print(len(val_dataset))
+
+# [CHANGED 3] print the sizes once (before: every process printed them -> 4 copies)
+if global_rank == 0:
+    print("train raw / val raw:", len(train_raw_sample), len(val_raw_sample))
+    print("train / val samples:", len(train_dataset), len(val_dataset))
 
 
-# In[110]:
-
-
-train_sampler = DistributedSampler(train_dataset)
+train_sampler = DistributedSampler(train_dataset,shuffle=True)
 train_loader=build_dataloader(train_dataset,batch_size,num_workers,shuffle=False,sampler=train_sampler,drop_last=False,prefetch_factor=pre_fetch_factor )
 
 val_sampler = DistributedSampler(val_dataset)
 val_loader=build_dataloader(val_dataset,batch_size,num_workers,shuffle=False,sampler=val_sampler,drop_last=False,prefetch_factor=pre_fetch_factor )
 
 
-
-# In[111]:
-
 device = torch.device(f"cuda:{local_rank}")
 
-backbone=ResNet50()
-# 1. build person model
+# [CHANGED 4] build the backbone ONCE, and really apply freeze_backbone from the yaml
+#             (before: the flag was read but never used, so the backbone was always trainable)
 backbone = ResNet50()
-B5Model = B5Model(backbone,num_classes=num_classes,drop_p=drop_p,hidden_dim=hidden_dim,num_layers=lstm_num_layer,bidirectional=True)
 
+# [CHANGED 5] the variable is called `model` (before: `B5Model = B5Model(...)` replaced the class by the object)
+model = B5Model(backbone,num_classes=num_classes,drop_p=drop_p,hidden_dim=hidden_dim,num_layers=lstm_num_layer,bidirectional=True)
 
-B5Model = B5Model.to(local_rank)
-B5Model = torch.nn.parallel.DistributedDataParallel(B5Model, device_ids=[local_rank])
-
-#if torch.cuda.device_count() > 1:
-#    print(f"=== Using {torch.cuda.device_count()} GPUs! ===")
-#    B5Model = torch.nn.DataParallel(B5Model)
-
-#B5Model = B5Model.to(device)
+model = model.to(local_rank)
+model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])
 
 
 optimizer=optim.AdamW(
-    filter(lambda p :p.requires_grad,B5Model.parameters()),
+    filter(lambda p :p.requires_grad,model.parameters()),
     lr=lr,
     weight_decay=weight_decay
 )
@@ -198,18 +153,8 @@ scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
 loss_fn = FocalLoss(gamma=gamma)
 
 
-# In[112]:
-
-
-#visualize_samples(train_dataset, label_map=PERSON_IDX_TO_ACTION)
-
-
-# In[ ]:
-
-
-
 trainer=BaseTrainer(
-    model=B5Model,
+    model=model,
     train_loader=train_loader,
     val_loader=val_loader,
     optimizer=optimizer,
@@ -228,13 +173,3 @@ trainer.train()
 
 
 dist.destroy_process_group()
-
-# In[ ]:
-
-
-
-
-# In[ ]:
-
-
-
