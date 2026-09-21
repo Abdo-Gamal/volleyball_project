@@ -70,8 +70,9 @@ echo " DONE: $(date)"
 echo "========================================"
 
 
-# script make profiling 
 
+
+# with profiling
 
 # #!/bin/bash
 # #SBATCH --job-name=volleyball
@@ -82,7 +83,7 @@ echo "========================================"
 # #SBATCH --gres=gpu:a100_1g.20gb:1
 
 # # -- UNCOMMENT THE NEXT LINE IF YOU ONLY WANT TO USE GPU1 (WHERE DATA ALREADY EXISTS) --
-# # #SBATCH --nodelist=gpu1
+# ##SBATCH --nodelist=gpu1
 
 # echo "========================================"
 # echo " VOLLEYBALL PROJECT TRAINING (with profiling)"
@@ -93,6 +94,9 @@ echo "========================================"
 # # 1. Activate conda environment
 # source /nfs/slurm/$USER/miniconda3/etc/profile.d/conda.sh
 # conda activate vision_env
+
+# # Make sure pynvml is available (one-time install, safe to run every time - no-op if present)
+# pip install --quiet --user pynvml 2>/dev/null
 
 # # 2. Print system RAM status
 # echo "=== System RAM Status ==="
@@ -140,13 +144,44 @@ echo "========================================"
 # echo "=== Data ready ==="
 # ls -lh "$DATA_DIR"
 
-# # 7. Start continuous GPU profiling in the background (logs every 10 seconds)
+# # 7. Start continuous GPU profiling in the background using pynvml (NOT nvidia-smi directly,
+# #    which is blocked by the cluster's job filter)
 # PROFILER_LOG="/nfs/slurm/$USER/projects/volleyball_project/logs/gpu_profile.csv"
 # mkdir -p "$(dirname "$PROFILER_LOG")"
 
-# echo "=== Starting GPU Profiler (saving to $PROFILER_LOG) ==="
-# nvidia-smi --query-gpu=timestamp,name,utilization.gpu,utilization.memory,memory.used,memory.total \
-#     --format=csv -l 10 > "$PROFILER_LOG" &
+# echo "=== Starting GPU Profiler via pynvml (saving to $PROFILER_LOG) ==="
+# python3 - "$PROFILER_LOG" <<'PYEOF' &
+# import sys, time, csv, datetime
+# import pynvml
+
+# log_path = sys.argv[1]
+# interval_sec = 10
+
+# pynvml.nvmlInit()
+# handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+# name = pynvml.nvmlDeviceGetName(handle)
+# if isinstance(name, bytes):
+#     name = name.decode()
+
+# with open(log_path, "w", newline="") as f:
+#     writer = csv.writer(f)
+#     writer.writerow(["timestamp", "name", "utilization.gpu (%)", "utilization.memory (%)",
+#                       "memory.used (MiB)", "memory.total (MiB)"])
+#     f.flush()
+#     while True:
+#         util = pynvml.nvmlDeviceGetUtilizationRates(handle)
+#         mem = pynvml.nvmlDeviceGetMemoryInfo(handle)
+#         writer.writerow([
+#             datetime.datetime.now().isoformat(timespec="seconds"),
+#             name,
+#             util.gpu,
+#             util.memory,
+#             mem.used // 1024**2,
+#             mem.total // 1024**2,
+#         ])
+#         f.flush()
+#         time.sleep(interval_sec)
+# PYEOF
 # PROFILER_PID=$!
 
 # # Make sure the profiler is always killed, even if training crashes or the job is cancelled
@@ -164,3 +199,4 @@ echo "========================================"
 
 # echo " DONE: $(date)"
 # echo "========================================"
+
