@@ -308,22 +308,258 @@ git commit -m "Resolved merge conflict in the architecture file"
 
 
 
-<-------------------------------------------------------------------------------->
-<--------------------------- Advanced Daily Tools ------------------------------->
 
 
 
 <-------------------------------------------------------------------------------->
-<--------------------------- Advanced Daily Tools ------------------------------->
+<---------------------------from udemy course ------------------------------->
 
 
-<-------------------------------------------------------------------------------->
-<--------------------------- Advanced Daily Tools ------------------------------->
+
+<------------------------------------------------------------------>
+<---------------------- Start & Initialize ------------------------>
+<------------------------------------------------------------------>
+
+# Initialize Git in a directory and start tracking
+git init
+
+<------------------------------------------------------------------>
+<------------------------ Basic Workflow -------------------------->
+<------------------------------------------------------------------>
+
+# Show the state of your working directory and staging area
+git status
+
+# List all files currently in the staging area
+git ls-files
+
+# Move files to the staging area
+git add .                 # Add all changed files
+git add [file_name]       # Add a specific file only
+
+# Save changes from the staging area to the local repository (Commit area)
+git commit -m "your message here"
+
+<------------------------------------------------------------------>
+<----------------- History & Time Travel (HEAD) ------------------->
+<------------------------------------------------------------------>
+
+# Show commit history (IDs, authors, dates, and messages)
+git log
+
+# Travel back in time to a specific commit (Creates Detached HEAD)
+# Note: Any new changes here will be lost if you leave, unless you create a branch!
+git checkout [commit_id]
+
+<------------------------------------------------------------------>
+<--------------------------- Branching ---------------------------->
+<------------------------------------------------------------------>
+
+# List all local branches (Shows which branch you are on)
+git branch
+
+# Create a new branch (but stay on the current one)
+git branch [branch_name]
+
+# Switch to an existing branch
+git checkout [branch_name]
+# OR (Modern way)
+git switch [branch_name]
+
+# Create a new branch AND switch to it immediately
+git checkout -b [branch_name]
+# OR (Modern way)
+git switch -c [branch_name]
+
+# Merge a branch into the current active branch
+# (First, make sure you are standing on the branch you want to receive the changes)
+git merge [branch_name_to_merge]
+
+# Delete a branch safely (Only works after it has been merged)
+git branch -d [branch_name]
+
+# Force delete a branch (Even if unmerged)
+git branch -D [branch_name]
 
 
-<-------------------------------------------------------------------------------->
-<--------------------------- Advanced Daily Tools ------------------------------->
 
 
-<-------------------------------------------------------------------------------->
-<--------------------------- Advanced Daily Tools ------------------------------->
+<------------------------------------------------------------------>
+<----------------- Undoing Changes & Deleting --------------------->
+<------------------------------------------------------------------>
+
+--- 1. MANUAL DELETION FROM WORK DIRECTORY ---
+
+Scenario: You deleted a file using the GUI/Folder, but Git still has it in Staging/Commit.
+Goal: Tell Git to officially track this deletion.
+git add [file_name]       # Adds the deletion to the Staging area, ready to be committed.
+
+--- 1. Restoring Working Directory (Before 'git add') ---
+
+# SCENARIO A: You accidentally deleted a tracked file manually (e.g., from GUI).
+# GOAL: Bring the deleted file back from Git's memory to your working directory.
+git restore [file_name]
+
+# SCENARIO B: You messed up a tracked file and want to discard all current edits.
+# GOAL: Restore the file to exactly how it was in the last commit. (WARNING: Edits are lost forever).
+git restore [file_name]
+# Older way: 
+git checkout [file_name]
+
+# SCENARIO C: You created brand new files (Untracked) and want to delete them.
+# GOAL: Delete new files that Git doesn't know about yet.
+git clean -dn   # Preview what will be deleted (Dry run to be safe)
+git clean -df   # Actually delete them forcefully
+
+--- 2. Undoing the Staging Area (Already Staged Files) ---
+
+# SCENARIO: You used 'git add' on a file, but now you want to unstage it.
+# MECHANISM: This copies the file state from the last Commit (HEAD) into the Staging Area.
+# GOAL: Move the file out of Staging, BUT keep your edits safe in the Working Directory.
+
+git restore --staged [file_name]  # Modern way
+git reset HEAD [file_name]        # Older way
+
+--- 3. FULL DISCARD (Unstage AND Trash Changes) ---
+
+# SCENARIO E: You staged a file, then realized the whole idea is bad and want to trash it completely.
+# GOAL: Remove it from Staging AND discard the edits from the Working Directory.
+# Modern Two-Step:
+git restore --staged [file_name]  # 1. Unstage it
+git restore [file_name]           # 2. Trash the edits
+# Older Two-Step:
+git reset HEAD [file_name]        # 1. Unstage it
+git checkout [file_name]          # 2. Trash the edits
+
+<------------------------------------------------------------------>
+<------------------ Resetting (Undo Commits) ---------------------->
+<------------------------------------------------------------------>
+
+# Move HEAD back by 1 commit, BUT keep changes in Staging & Work Dir
+# (Like undoing the commit action only)
+git reset --soft HEAD~1
+
+# Move HEAD back by 1 commit, keep changes in Work Dir, but UNSTAGE them (Default)
+# (You will need to 'git add' again if you want to commit)
+git reset HEAD~1
+
+# Move HEAD back by 1 commit, and completely TRASH all changes (Work Dir & Staging)
+# (WARNING: Irreversible, everything is lost)
+git reset --hard HEAD~1
+
+
+<------------------------------------------------------------------>
+<--------- Scenario: Adding forgotten edits to an old commit ------>
+<------------------------------------------------------------------>
+# use it when try thing  or try thing from berivous command?
+
+# 1. Go back to the specific commit (Detached HEAD state)
+git checkout [commit_id]
+
+# 2. Make your edits and add the forgotten files
+git add .
+git commit -m "Fixing or adding forgotten stuff"
+
+# 3. Create a new branch from this state so you don't lose the changes
+git branch [new_branch_name]
+
+# 4. Switch back to your main branch (e.g., master or main)
+git switch master
+
+# 5. Merge the new branch to apply your fixes to the main timeline
+git merge [new_branch_name]
+
+# 6. Delete the temporary branch since you don't need it anymore
+git branch -D [new_branch_name]
+
+
+<------------------------------------------------------------------>
+<------------------- Summary: Modern Commands --------------------->
+<------------------------------------------------------------------>
+# In newer Git versions, 'switch' and 'restore' were introduced to 
+# replace the confusing multiple uses of 'checkout'.
+
+--- BRANCHING (Use 'switch' instead of 'checkout') ---
+
+# Move to an existing branch
+git switch [branch_name]
+
+# Create a new branch and move to it immediately
+git switch -c [branch_name]
+
+
+--- UNDOING FILES (Use 'restore' instead of 'checkout / reset') ---
+
+# Discard changes in a file (Restore to exactly how it was in the last commit)
+git restore [file_name]
+
+# Unstage a file (Move from Staging area back to Working directory)
+git restore --staged [file_name]
+
+
+<------------------------------------------------------------------>
+<------------------- The Core Mechanism of Commands --------------->
+<------------------------------------------------------------------>
+
+# Understanding how data moves between Git's 3 areas:
+# 1. Working Directory (WD)   -> Where you edit files.
+# 2. Staging Area (Stage)     -> Where you prepare files for commit.
+# 3. Local Repository (Repo)  -> Where commits are saved (HEAD points to the latest).
+
+--- Moving Forward ---
+# Copies the file from (WD) ----> to (Stage)
+git add [file_name]       
+
+# Moves everything from (Stage) ----> to (Repo)
+git commit           
+
+--- Moving Backward (Restoring Files) ---
+# Copies the file from (Repo) ----> to (WD)
+git restore [file_name]           
+
+# Copies the file from (Repo) ----> to (Stage) only! (WD is safe)
+git restore --staged [file_name]  
+
+--- Moving the Timeline (Resetting HEAD) ---
+# Moves HEAD back 1 step. Changes are kept in (Stage) + (WD).
+git reset --soft HEAD~1      
+
+# Moves HEAD back 1 step. Changes are kept in (WD) only. (Unstaged)
+git reset HEAD~1             
+
+# Moves HEAD back 1 step. DESTROYS ALL CHANGES in (Stage) + (WD).
+git reset --hard HEAD~1      
+
+--- Navigating Branches (The Modern Way) ---
+# Changes the current active timeline/branch.
+git switch [branch_name]          
+
+# Creates a new timeline/branch and activates it immediately.
+git switch -c [branch_name]
+
+<------------------------------------------------------------------>
+<---------------- The Core Goal of Git Commands ------------------->
+<------------------------------------------------------------------>
+
+# 1. COMMAND: git restore
+# PRIMARY GOAL: Discard changes in a file in the Working Directory.
+# WHAT CHANGES IT: Adding '--staged' changes the target destination. 
+#   Instead of overwriting the Working Directory, it overwrites the Staging Area.
+
+# 2. COMMAND: git reset
+# PRIMARY GOAL: Move the HEAD pointer back in time to undo commits.
+# WHAT CHANGES IT: The flags (--soft, --hard, or nothing/mixed) determine what happens 
+#   to your uncommitted edits after moving back in time.
+
+# 3. COMMAND: git switch
+# PRIMARY GOAL: Change your active timeline (move between existing branches).
+# WHAT CHANGES IT: Adding '-c' makes it create the branch first, then switch to it.
+
+# 4. COMMAND: git checkout (The older, multi-purpose tool)
+# PRIMARY GOAL: Change the state of the Working Directory to match a specific commit or branch.
+# WHAT CHANGES IT: 
+#   - Passing a branch name -> Switches branches.
+#   - Passing a commit ID -> Travels back in time (Detached HEAD).
+#   - Passing a file name -> Discards changes in that file.
+
+
