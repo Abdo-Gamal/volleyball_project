@@ -35,26 +35,35 @@ sample = {
     ]
 }
 """
-
 import torch
 import numpy as np
 from PIL import Image
+from collections import OrderedDict
 from torchvision import tv_tensors
 from dataset.adapters.base_adapter import BaseAdapter
 
 class TrackingAdapter(BaseAdapter):
-    def __init__(self, *args, max_players=12, **kwargs):
+    def __init__(self, *args, cache_size=1000, max_players=12, **kwargs):
         super().__init__(*args, **kwargs)
+        self.cache_size = cache_size
+        self.cache = OrderedDict()
         self.max_players = max_players  
 
     def load_sample(self, idx):
         sample = self.raw[idx]
         player_data = sample["players"]
         
-        players_clips = []
-        
-        for player in player_data:
-            if len(players_clips) >= self.max_players:
+        label_int = self.label_map[sample["group_label"]]
+
+        if idx in self.cache:
+            group_tensor = self.cache.pop(idx)
+            self.cache[idx] = group_tensor 
+            return tv_tensors.Video(group_tensor.clone()), label_int
+
+        group_tensor = torch.zeros((self.max_players, 9, 3, 224, 224), dtype=torch.uint8)
+
+        for i, player in enumerate(player_data):
+            if i >= self.max_players:
                 break
                 
             frames = player["frames"][5:14]
@@ -71,42 +80,12 @@ class TrackingAdapter(BaseAdapter):
                 crop_tensor = torch.from_numpy(np.array(crop)).permute(2, 0, 1)
                 cropped_frames.append(crop_tensor)
 
-            clip_tensor = torch.stack(cropped_frames) 
-            players_clips.append(clip_tensor)
+            clip_tensor = torch.stack(cropped_frames)
             
-        group_tensor = torch.stack(players_clips) 
-        
-        current_players = group_tensor.shape[0]
-        if current_players < self.max_players:
-            missing_players = self.max_players - current_players
-            padding_shape = (missing_players, 9, 3, 224, 224)  
-            zeros_pad = torch.zeros(padding_shape, dtype=torch.uint8)
-            group_tensor = torch.cat([group_tensor, zeros_pad], dim=0)
+            group_tensor[i] = clip_tensor
 
-        label_int = self.label_map[sample["group_label"]]
+        self.cache[idx] = group_tensor
+        if len(self.cache) > self.cache_size:
+            self.cache.popitem(last=False)
 
-        return tv_tensors.Video(group_tensor), label_int
-
-
-
-
-
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-     
+        return tv_tensors.Video(group_tensor.clone()), label_int
