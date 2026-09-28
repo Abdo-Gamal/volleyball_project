@@ -5,9 +5,9 @@
 #SBATCH --mem=64G
 #SBATCH --cpus-per-task=5
 #SBATCH --gres=gpu:a100_1g.20gb:1
+#SBATCH --nodelist=gpu1
 
 # -- UNCOMMENT THE NEXT LINE IF YOU ONLY WANT TO USE GPU1 (WHERE DATA ALREADY EXISTS) --
-##SBATCH --nodelist=gpu1
 
 echo "========================================"
 echo " VOLLEYBALL PROJECT TRAINING"
@@ -81,9 +81,9 @@ echo "========================================"
 # #SBATCH --mem=64G
 # #SBATCH --cpus-per-task=5
 # #SBATCH --gres=gpu:a100_1g.20gb:1
+## SBATCH --nodelist=gpu1
 
 # # -- UNCOMMENT THE NEXT LINE IF YOU ONLY WANT TO USE GPU1 (WHERE DATA ALREADY EXISTS) --
-# ##SBATCH --nodelist=gpu1
 
 # echo "========================================"
 # echo " VOLLEYBALL PROJECT TRAINING (with profiling)"
