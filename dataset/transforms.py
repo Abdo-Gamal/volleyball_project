@@ -183,3 +183,13 @@ class B5PersonTransform(BaseTransformV2):
             v2.RandomGrayscale(p=0.05),
             v2.RandomAdjustSharpness(sharpness_factor=1.3, p=0.1),
         ]
+    
+class B5GroupTransform(BaseTransformV2):
+
+    def get_train_augmentations(self) -> list:
+        return [
+            transforms.RandomRotation(3),
+            transforms.ColorJitter(0.2, 0.2, 0.2, 0.05),
+        ]
+    
+    
