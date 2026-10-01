@@ -168,6 +168,8 @@ trainer=BaseTrainer(
     output_dir=output_dir,
     class_map=PERSON_ACTION_TO_IDX,
     print_perclass=print_perclass,
+    checkpoint_name="best_model_.pth",
+
 )
 trainer.train()
 
