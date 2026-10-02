@@ -35,6 +35,7 @@ sample = {
     ]
 }
 """
+
 import torch
 import numpy as np
 from PIL import Image
@@ -53,14 +54,17 @@ class TrackingAdapter(BaseAdapter):
         sample = self.raw[idx]
         player_data = sample["players"]
         
-        label_int = self.label_map[sample["group_label"]]
-
+        # 1. Check cache
         if idx in self.cache:
-            group_tensor = self.cache.pop(idx)
-            self.cache[idx] = group_tensor 
-            return tv_tensors.Video(group_tensor.clone()), label_int
+            group_tensor, positions, label_int = self.cache.pop(idx)
+            # Fix: Save all three items back to cache
+            self.cache[idx] = (group_tensor, positions, label_int) 
+            return tv_tensors.Video(group_tensor.clone()), positions, label_int
 
+        # 2. Pre-allocate tensors
         group_tensor = torch.zeros((self.max_players, 9, 3, 224, 224), dtype=torch.uint8)
+        group_pos = torch.zeros((self.max_players, 9, 2), dtype=torch.float32)
+        label_int = self.label_map[sample["group_label"]]
 
         for i, player in enumerate(player_data):
             if i >= self.max_players:
@@ -70,22 +74,38 @@ class TrackingAdapter(BaseAdapter):
             boxes = player["boxes"][5:14]
             
             cropped_frames = []
+            positions = []
+            
             for path, box in zip(frames, boxes):
                 img = Image.open(path).convert("RGB")
                 
-                x1, y1, x2, y2 = map(int, box)
-                crop = img.crop((x1, y1, x2, y2))
+                # Assuming data is [x, y, x2, y2] based on your previous code
+                x, y, x2, y2 = map(int, box)
+                crop = img.crop((x, y, x2, y2))
                 crop = crop.resize((224, 224), Image.BILINEAR)
-                
+
+               # Calculate center: average of x1 and x2
+                # Normalize: divide by image width [0, 1]
+                # Zero-center: subtract 0.5
+                center_x = ((x + x2 )/ 2.0) / img.width - 0.5     
+                center_y = ((y + y2) / 2.0) / img.height - 0.5
+                positions.append([center_x, center_y])
+
+                # Convert to Tensor and change format to (Channels, H, W)
                 crop_tensor = torch.from_numpy(np.array(crop)).permute(2, 0, 1)
                 cropped_frames.append(crop_tensor)
 
+            # Stack 9 frames into one tensor (dim=0 by default)
             clip_tensor = torch.stack(cropped_frames)
             
             group_tensor[i] = clip_tensor
+            
+            # Convert Python list of floats to PyTorch Tensor
+            group_pos[i] = torch.tensor(positions, dtype=torch.float32)
 
-        self.cache[idx] = group_tensor
+        # 3. Update cache
+        self.cache[idx] = (group_tensor, group_pos, label_int) 
         if len(self.cache) > self.cache_size:
             self.cache.popitem(last=False)
 
-        return tv_tensors.Video(group_tensor.clone()), label_int
+        return tv_tensors.Video(group_tensor.clone()), group_pos, label_int
