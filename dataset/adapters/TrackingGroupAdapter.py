@@ -56,10 +56,14 @@ class TrackingAdapter(BaseAdapter):
         
         # 1. Check cache
         if idx in self.cache:
-            group_tensor, positions, label_int = self.cache.pop(idx)
+            group_tensor, group_pos, label_int = self.cache.pop(idx)
             # Fix: Save all three items back to cache
-            self.cache[idx] = (group_tensor, positions, label_int) 
-            return tv_tensors.Video(group_tensor.clone()), positions, label_int
+            self.cache[idx] = (group_tensor, group_pos, label_int) 
+            input_data={
+                        "persons":tv_tensors.Video(group_tensor.clone()), 
+                        "positions":group_pos.clone(),
+                    }
+            return input_data, label_int
 
         # 2. Pre-allocate tensors
         group_tensor = torch.zeros((self.max_players, 9, 3, 224, 224), dtype=torch.uint8)
@@ -108,4 +112,9 @@ class TrackingAdapter(BaseAdapter):
         if len(self.cache) > self.cache_size:
             self.cache.popitem(last=False)
 
-        return tv_tensors.Video(group_tensor.clone()), group_pos, label_int
+        input_data={
+            "persons":tv_tensors.Video(group_tensor.clone()), 
+            "positions":group_pos.clone(),
+        }
+
+        return input_data, label_int
