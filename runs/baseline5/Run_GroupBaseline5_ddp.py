@@ -94,7 +94,8 @@ from models.baseline_model5.baseline5 import  personModel
 from models.baseline_model5.GroupBaselineModel  import GroupBaselineModel
 
 
-from trainers.DDP_base_trainer  import BaseTrainer
+#from trainers.DDP_base_trainer  import BaseTrainer
+from trainers.group_trainer import GroupTrainer_ddp
 
 from utils.checkpoint import save_checkpoint
 from utils.label_maps import GROUP_LABELS
@@ -155,7 +156,7 @@ scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
 loss_fn = FocalLoss(gamma=gamma)
 
 
-trainer=BaseTrainer(
+trainer=GroupTrainer_ddp(
     model=model,
     train_loader=train_loader,
     val_loader=val_loader,
