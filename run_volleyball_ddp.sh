@@ -80,7 +80,7 @@ cd /nfs/slurm/$USER/projects/volleyball_project
 echo "=== Starting Training ==="
 
 # [CHANGED 3] --standalone = "everything is on this one node": no rendezvous address, no port to pick
-torchrun --standalone --nproc_per_node=3 /nfs/slurm/assu002/projects/volleyball_project/runs/baseline5/Run_Baseline5_ddp.py
+torchrun --standalone --nproc_per_node=3 /nfs/slurm/assu002/projects/volleyball_project/runs/baseline5/Run_GroupBaseline5_ddp.py
 
 echo ""
 echo "=== Saved outputs ==="
