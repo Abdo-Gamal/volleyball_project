@@ -56,3 +56,38 @@ class GroupTrainer(BaseTrainer):
         print(f"\nEpoch [{epoch}] | lr: {lr:.7f}")
         print(f"TRAIN → loss: {train['loss']:.3f} | acc: {train_acc:.3f} | F1: {train['metric']:.3f}")
         print(f"VAL   → loss: {val['loss']:.3f}   | acc: {val_acc:.3f}   | F1: {val['metric']:.3f}")
+
+
+
+
+# =========================================================================
+# 2. GroupTrainer version 2 inherited from BaseTrainer_ddp
+# =========================================================================
+from trainers.DDP_base_trainer import BaseTrainer as BaseTrainer_ddp
+
+class GroupTrainer_ddp(BaseTrainer_ddp):
+    """
+    Trainer for Baseline 5 stage 2 GroupModel.
+    Input x is a dict — override move_input to handle that.
+
+    Usage in notebook:
+        from trainers.group_trainer import GroupTrainer
+        trainer = GroupTrainer(
+            model=model, train_loader=trainloader, val_loader=valloader,
+            optimizer=optimizer, scheduler=scheduler,
+            loss_fn=FocalLoss(gamma=gamma),
+            accuracy=accuracy, f1_score=f1_calc,
+            save_checkpoint=save_checkpoint,
+            device=device, epochs=epochs, output_dir=output_dir,
+            class_map=GROUP_ACTION_TO_IDX, print_perclass=True,
+        )
+        trainer.train()
+    """
+        
+    def move_input(self, x):
+        """
+                GroupModel receives {"persons": Tensor[B,N,3,H,W],
+                                     "positions": Tensor[B,N,2]}.
+                Move every value to device.
+         """
+        return {k: v.to(self.device, non_blocking=True) for k, v in x.items()}

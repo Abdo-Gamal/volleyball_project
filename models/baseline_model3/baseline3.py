@@ -35,7 +35,7 @@ class GroupModel(nn.Module):
         super().__init__()
 
         self.person_model = person_model
-        self.person_model.eval()
+        self.person_model.eval() #this line may be wrong try to remove it and see if it works
 
         # Add spatial info
         self.projection = nn.Sequential(

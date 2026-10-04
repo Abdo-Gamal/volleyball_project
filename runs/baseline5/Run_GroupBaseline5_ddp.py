@@ -38,7 +38,7 @@ def load_yaml(path):
         return yaml.safe_load(f)
 
 base_cfg = load_yaml("configs/base_ddp.yaml")
-b5_cfg   = load_yaml("configs/baseline5_ddp.yaml")
+b5_cfg   = load_yaml("configs/baseline5_stage2_ddp.yaml")
 
 
 # ── fix data path based on machine ──────────────
@@ -57,7 +57,7 @@ from torch import optim
 
 root=base_cfg["dataset"]['root']
 tracking_annotation=base_cfg["dataset"]["tracking_annotation"]
-num_classes=base_cfg['dataset']['action_person']
+num_classes=base_cfg['dataset']['num_classes']
 
 train_videos=base_cfg['splits']['train']
 val_videos=base_cfg['splits']['val']
@@ -74,28 +74,28 @@ weight_decay=b5_cfg['train']['weight_decay']
 eta_min=b5_cfg['train']['eta_min']
 drop_p=b5_cfg['train']['drop_p']
 gamma=b5_cfg['train']['gamma']
-hidden_dim=b5_cfg['train']['hidden_dim']
-lstm_num_layer=b5_cfg['train']['lstm_num_layer']
-print_perclass=b5_cfg['train']['print_PerClass']    
+print_perclass=b5_cfg['train']['print_perclass']    
 output_dir=b5_cfg['output']['root']
 
 
 from utils.seed import  set_seed
 
-from dataset.tracking_raw_dataset import TrackingRawDataset 
-from dataset.adapters.tracking_adapter   import TrackingAdapter
+from dataset.TrackingGroupRawDataset import TrackingRawDataset 
+from dataset.adapters.TrackingGroupAdapter   import TrackingAdapter
 
-from dataset.transforms  import B5PersonTransform 
+from dataset.transforms  import B5GroupTransform 
 from dataset.data_loader import build_dataloader
 ##############
 from models.backbones.resnet50 import ResNet50
 from models.baseline_model5.baseline5 import  B5Model
+from models.baseline_model5.GroupBaselineModel  import GroupBaselineModel
 
 
-from trainers.DDP_base_trainer  import BaseTrainer
+#from trainers.DDP_base_trainer  import BaseTrainer
+from trainers.group_trainer import GroupTrainer_ddp
 
 from utils.checkpoint import save_checkpoint
-from utils.label_maps import PERSON_ACTION_TO_IDX
+from utils.label_maps import GROUP_LABELS ,GROUP_IDX_TO_ACTION,GROUP_ACTION_TO_IDX
 from utils.metrics import accuracy ,f1_calc
 
 from losses.focal_loss import FocalLoss
@@ -103,7 +103,7 @@ from losses.focal_loss import FocalLoss
 
 set_seed()
 
-tfm       = B5PersonTransform()
+tfm       = B5GroupTransform()
 train_transforms = tfm.train()
 val_transforms   = tfm.val()
 
@@ -111,8 +111,8 @@ val_transforms   = tfm.val()
 train_raw_sample=TrackingRawDataset(root,tracking_annotation,train_videos)
 val_raw_sample=TrackingRawDataset(root,tracking_annotation,val_videos)
 
-train_dataset=TrackingAdapter(train_raw_sample,train_transforms,PERSON_ACTION_TO_IDX)
-val_dataset=TrackingAdapter(val_raw_sample,val_transforms,PERSON_ACTION_TO_IDX)
+train_dataset=TrackingAdapter(train_raw_sample,train_transforms,GROUP_ACTION_TO_IDX)
+val_dataset=TrackingAdapter(val_raw_sample,val_transforms,GROUP_ACTION_TO_IDX)
 
 # [CHANGED 3] print the sizes once (before: every process printed them -> 4 copies)
 if global_rank == 0:
@@ -129,13 +129,13 @@ val_loader=build_dataloader(val_dataset,batch_size,num_workers,shuffle=False,sam
 
 device = torch.device(f"cuda:{local_rank}")
 
-# [CHANGED 4] build the backbone ONCE, and really apply freeze_backbone from the yaml
-#             (before: the flag was read but never used, so the backbone was always trainable)
 backbone = ResNet50()
+pretrained_person_model=B5Model(backbone,num_classes=9,drop_p=.5,hidden_dim=512,num_layers=1,bidirectional=True)
+ckp=torch.load(b5_cfg['model']['path'],map_location=device,weights_only=True) 
+pretrained_person_model.load_state_dict(ckp["model_state"])
 
-# [CHANGED 5] the variable is called `model` (before: `B5Model = B5Model(...)` replaced the class by the object)
-model = B5Model(backbone,num_classes=num_classes,drop_p=drop_p,hidden_dim=hidden_dim,num_layers=lstm_num_layer,bidirectional=True)
 
+model = GroupBaselineModel(pretrained_person_model,num_classes=num_classes,drop_p=drop_p)
 model = model.to(local_rank)
 model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])
 
@@ -153,7 +153,7 @@ scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
 loss_fn = FocalLoss(gamma=gamma)
 
 
-trainer=BaseTrainer(
+trainer=GroupTrainer_ddp(
     model=model,
     train_loader=train_loader,
     val_loader=val_loader,
@@ -166,9 +166,9 @@ trainer=BaseTrainer(
     device=device,
     epochs=epochs,
     output_dir=output_dir,
-    class_map=PERSON_ACTION_TO_IDX,
+    class_map=GROUP_ACTION_TO_IDX,
     print_perclass=print_perclass,
-    checkpoint_name="best_model_.pth",
+    checkpoint_name="best_group_model.pth",
 
 )
 trainer.train()

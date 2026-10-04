@@ -1,0 +1,25 @@
+# ========================================
+# Baseline 5 Configuration
+# ========================================
+
+experiment:
+  name: baseline5_resnet50  stage2 model
+
+train:
+  batch_size: 2
+  epochs: 10
+  lr: .0003
+  weight_decay: .0001
+  eta_min: .00001
+  drop_p: .6
+  gamma: 0.0
+  print_perclass: True 
+
+  
+model:
+  freeze_backbone: False
+  path: /nfs/slurm/assu002/projects/volleyball_project/outputs/baseline5/best_model.pth
+
+
+output:
+  root: /nfs/slurm/assu002/projects/volleyball_project/outputs/baseline5

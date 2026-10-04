@@ -5,15 +5,16 @@
 #SBATCH --mem=64G
 #SBATCH --cpus-per-task=5
 #SBATCH --gres=gpu:a100_1g.20gb:1
+#SBATCH --nodelist=gpu1
 
 # -- UNCOMMENT THE NEXT LINE IF YOU ONLY WANT TO USE GPU1 (WHERE DATA ALREADY EXISTS) --
-##SBATCH --nodelist=gpu1
 
 echo "========================================"
 echo " VOLLEYBALL PROJECT TRAINING"
 echo " Started : $(date)"
 echo " Node    : $(hostname)"
 echo "========================================"
+export PYTORCH_NVML_BASED_CUDA_CHECK=0
 
 # 1. Activate conda environment
 source /nfs/slurm/$USER/miniconda3/etc/profile.d/conda.sh
@@ -64,7 +65,7 @@ ls -lh "$DATA_DIR"
 cd /nfs/slurm/$USER/projects/volleyball_project
 
 echo "=== Starting Training ==="
-python3 -u runs/baseline5/Run_Baseline5_seq.py
+python3 -u runs/baseline5/Run_GroupBaseline5_ddp.py
 
 echo " DONE: $(date)"
 echo "========================================"
@@ -81,9 +82,9 @@ echo "========================================"
 # #SBATCH --mem=64G
 # #SBATCH --cpus-per-task=5
 # #SBATCH --gres=gpu:a100_1g.20gb:1
+## SBATCH --nodelist=gpu1
 
 # # -- UNCOMMENT THE NEXT LINE IF YOU ONLY WANT TO USE GPU1 (WHERE DATA ALREADY EXISTS) --
-# ##SBATCH --nodelist=gpu1
 
 # echo "========================================"
 # echo " VOLLEYBALL PROJECT TRAINING (with profiling)"

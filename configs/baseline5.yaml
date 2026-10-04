@@ -16,7 +16,6 @@ train:
   gamma: 0.0
   hidden_dim: 512
   lstm_num_layer : 1
-
   print_PerClass: True 
 
 

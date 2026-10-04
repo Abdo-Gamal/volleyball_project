@@ -14,7 +14,7 @@
 # [CHANGED 1] %j in the log name = job number, so a new job does not overwrite the old log
 # [CHANGED 2] --nodelist=gpu1 : the dataset is in gpu1's /tmp (a local disk), so the job must run on gpu1.
 #             Remove this line and the job may land on another node, which has no data there.
-
+export PYTORCH_NVML_BASED_CUDA_CHECK=0
 echo "========================================"
 echo " VOLLEYBALL PROJECT TRAINING"
 echo " Started : $(date)"
@@ -80,7 +80,7 @@ cd /nfs/slurm/$USER/projects/volleyball_project
 echo "=== Starting Training ==="
 
 # [CHANGED 3] --standalone = "everything is on this one node": no rendezvous address, no port to pick
-torchrun --standalone --nproc_per_node=3 /nfs/slurm/assu002/projects/volleyball_project/runs/baseline5/Run_Baseline5_ddp.py
+torchrun --standalone --nproc_per_node=3 /nfs/slurm/assu002/projects/volleyball_project/runs/baseline5/Run_GroupBaseline5_ddp.py
 
 echo ""
 echo "=== Saved outputs ==="
