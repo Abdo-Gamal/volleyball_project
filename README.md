@@ -1,107 +1,1375 @@
-# Group Activity Recognition: A Hierarchical Deep Temporal Model
+# Group Activity Recognition
 
-A modern implementation of the CVPR 2016 paper: *A Hierarchical Deep Temporal Model for Group Activity Recognition*. This project tackles the complex challenge of understanding collective group activities by analyzing the individual actions of people over time.
+## A Hierarchical Deep Temporal Model for Group Activity Recognition
 
----
+```{=html}
+<p align="center">
+```
+`<img src="docs/images/hierarchical_model.png" width="850">`{=html}
+```{=html}
+</p>
+```
+```{=html}
+<p align="center">
+```
+`<b>`{=html}Understanding group activities from individual player
+actions, temporal dynamics, and team-level interactions.`</b>`{=html}
+```{=html}
+</p>
+```
 
-## 📊 1. Data Understanding & Dataset Overview
+------------------------------------------------------------------------
 
-In practice, the first step in any robust machine learning pipeline is to fully understand the data: checking quality and quantity, visualizing samples, and noting down biases.
+## Table of Contents
 
-### Dataset Details
-We utilize the **Volleyball Dataset**, consisting of publicly available YouTube videos. This dataset is excellent for this problem because it features structured team interactions.
+-   [1. Overview](#1-overview)
+-   [2. Problem Definition](#2-problem-definition)
+-   [3. Why Group Activity Recognition Is
+    Difficult](#3-why-group-activity-recognition-is-difficult)
+-   [4. Hierarchical View of the
+    Problem](#4-hierarchical-view-of-the-problem)
+-   [5. Volleyball Dataset](#5-volleyball-dataset)
+-   [6. Dataset Statistics](#6-dataset-statistics)
+-   [7. Group Activity Classes](#7-group-activity-classes)
+-   [8. Individual Player Action
+    Classes](#8-individual-player-action-classes)
+-   [9. Dataset Organization](#9-dataset-organization)
+-   [10. Annotation Format](#10-annotation-format)
+-   [11. Temporal Window](#11-temporal-window)
+-   [12. Train / Validation / Test
+    Split](#12-train--validation--test-split)
+-   [13. Original Hierarchical
+    Architecture](#13-original-hierarchical-architecture)
+-   [14. Person-Level Temporal
+    Modeling](#14-person-level-temporal-modeling)
+-   [15. Group-Level Temporal
+    Modeling](#15-group-level-temporal-modeling)
+-   [16. Team-Aware Pooling](#16-team-aware-pooling)
+-   [17. Baseline Experiments](#17-baseline-experiments)
+-   [18. Baseline B1](#18-baseline-b1--image-classification)
+-   [19. Baseline B3](#19-baseline-b3--fine-tuned-person-classification)
+-   [20. Baseline
+    B4](#20-baseline-b4--temporal-model-with-image-features)
+-   [21. Baseline
+    B5](#21-baseline-b5--temporal-model-with-person-features)
+-   [22. Baseline B6](#22-baseline-b6--two-stage-model-without-lstm-1)
+-   [23. Baseline B7](#23-baseline-b7--two-stage-model-without-lstm-2)
+-   [24. Baseline B8](#24-baseline-b8--two-stage-hierarchical-model)
+-   [25. Original Results](#25-original-results)
+-   [26. Main Insight](#26-main-insight)
+-   [27. Project Scope](#27-project-scope)
+-   [28. References](#28-references)
 
-* **Size:** ~60GB dataset. [Download Link Here](https://drive.google.com/drive/u/2/folders/16Let5hmxFejuy_fz3nq81tqNoC0qGgRe) *(Or start with a sample of 2 videos, each with 2 clips).*
-* **Annotations:** This dataset has 2 distinct levels of annotation:
-  * **9 Person Actions (Individual Level):** Waiting, Setting, Digging, Falling, Spiking, Blocking, Jumping, Moving, Standing.
-  * **8 Scene Classes (Group Activity Level):** Right set, Right spike, Right pass, Right winpoint, Left winpoint, Left pass, Left spike, Left set.
+------------------------------------------------------------------------
 
-**Example Annotations:**
-![Example Annotations](image_6b6f1e.jpg)
-*Figure: A frame labeled as "Left Spike," with bounding boxes around each player, demonstrating individual and team activity annotations.*
+# 1. Overview
 
----
+**Group Activity Recognition (GAR)** is the task of recognizing the
+activity performed by a group of people in a video.
 
-## 🔬 2. Ablation Study: Understanding System Components
+This project is based on the problem introduced in the CVPR 2016 paper:
 
-An **Ablation Study** is a method used to assess the impact of various components of a system on its overall performance by experimenting by removing them one by one.
+> **A Hierarchical Deep Temporal Model for Group Activity Recognition**\
+> Mostafa S. Ibrahim, Srikanth Muralidharan, Zhiwei Deng, Arash Vahdat,
+> Greg Mori\
+> IEEE Conference on Computer Vision and Pattern Recognition (CVPR),
+> 2016.
 
-**Example:** Assume your system consists of 4 enhancement features (A, B, C, D). 
-* *A and B* are extra losses, *C* is a 2nd LSTM layer, *D* is a complex backbone.
-* You run experiments like **ABC, ACD, ABD**. Each combination tells you the effect of the single component that was removed.
-* *In a standard classifier:* This could mean removing certain layers, disabling data augmentation, or using different feature extraction methods.
-* *In a self-driving car:* It's akin to removing specific sensors to see the effect on motion prediction.
+The central idea is that a group activity can be understood by first
+modeling the temporal behavior of individual people and then aggregating
+these individual representations to understand the dynamics of the whole
+group.
 
----
+The problem can therefore be viewed as:
 
-## 🏗️ 3. Model Baselines (B1 to B8)
+``` text
+Video Frames
+     ↓
+Individual Players
+     ↓
+Player Actions
+     ↓
+Person-Level Temporal Dynamics
+     ↓
+Team / Group Representation
+     ↓
+Group-Level Temporal Dynamics
+     ↓
+Group Activity
+```
 
-To prove the effectiveness of the final Hierarchical Model, we build and test several baselines. Each experiment teaches us something vital (e.g., naive image classification doesn't help much, but temporal information significantly boosts results).
+The original work introduced a hierarchical architecture based on two
+levels of temporal modeling:
 
-### Baseline B1-tuned (Image Classification)
-* **Concept:** Don't try anything that doesn't fine-tune well. 
-* **Implementation:** For each clip, use the middle image only (or feel free to use 5 before and 4 after). Fine-tune an image classifier (e.g., ResNet50, upgrading from the original paper's AlexNet) over the 8 scene classes. Compute the results. This is your first model.
+1.  **Person-level LSTM** --- models the temporal dynamics of each
+    player.
+2.  **Group-level LSTM** --- models the temporal dynamics of the whole
+    scene after aggregating the players.
 
-### Baseline B3 (Fine-tuned Person Classification)
-* **Train (A):** Fine-tune an image classifier over 9 individual actions. The input is a cropped person.
-* **Inference (B):** For an image, get all the person crops. Extract features for each crop (e.g., 2048 features). Apply **Max Pool** across all features to create a single image representation.
-* **Train (C):** Do standard Neural Network (NN) training on these pooled features over the 8 group classes.
+An important extension is **two-group pooling**, where players from the
+two volleyball teams are processed separately before their
+representations are concatenated.
 
-### Baseline B4 (Temporal Model with Image Features)
-* **Implementation #1:** Use the classifier from B1-tuned to extract a representation per clip. Using 9 frames per image, you create a sequence of 9 steps for each clip. Train an LSTM on these sequences.
-* **Implementation #2:** Alternatively, extend the classifier network directly with an LSTM layer followed by classification. This avoids explicit feature extraction steps.
+------------------------------------------------------------------------
 
-### Baseline B5 (Temporal Model with Person Features)
-* **Concept:** Temporal on crops (LSTM on a player level).
-* **Implementation:** Build a representation per person. Represent each clip with the last hidden state of the LSTM. Max pool all players' representations (up to 12 per image). Then, apply the NN classifier exactly like in B3 (on images). *Note: The features classifier here has no temporal info at the group level.*
+# 2. Problem Definition
 
-### Baseline B6 (Two-stage Model without LSTM 1)
-* **Implementation:** Follow B3 steps A and B. However, for step B, extract representations for each clip of 9 frames. For step C, apply an LSTM on the sequences from step B.
-* **Result:** This is a model where the LSTM is applied on the image (scene) level only, not on the individual players.
+Traditional image classification attempts to answer questions such as:
 
-### Baseline B7 (Two-stage Model without LSTM 2 / Full Model V1)
-* **Implementation:** 
-  1. Train LSTM on the crops level (LSTM on a player).
-  2. Extract clips: a sequence of 9 steps per player.
-  3. For each frame, properly max pool its players into one representation.
-  4. Train LSTM 2 on the frame level.
+``` text
+"What is in this image?"
+```
 
-### Baseline B8 (Two-stage Hierarchical Model - Full Model V2)
-* **Concept:** Retaining Spatial & Team Information.
-* **Implementation:** Same as B7, but the scene representation is **not** a pool of all players mixed together.
-  * **X** = Pool Team 1 (6 players)
-  * **Y** = Pool Team 2 (6 players)
-  * **Scene Representation** = Concatenation of X and Y.
-* Using one representation per team reduces confusion (e.g., Left vs. Right) and significantly enhances results.
+or:
 
-![High Level Architecture](image_619085.png)
-*Figure 1: High-level architecture. Each person is modeled using a temporal model that captures their dynamics, integrated into a higher-level model for scene activity.*
+``` text
+"What action is happening?"
+```
 
-![Detailed Architecture](image_6c71e4.png)
-*Figure 2: Detailed model view showing individual LSTMs feeding into a group LSTM.*
+Group activity recognition is more complex because multiple people may
+be performing different actions at the same time.
 
-![Team Pooling](image_6c720c.png)
-*Figure 3: Highlighting the 2-group pooling (Baseline B8) to capture the spatial arrangements of players.*
+For example:
 
----
+``` text
+Player 1 → Standing
+Player 2 → Moving
+Player 3 → Jumping
+Player 4 → Blocking
+Player 5 → Setting
+```
 
-## 📈 4. Results & Performance
+These are **individual actions**.
 
-As shown in the ablation study results below, adding temporal models (LSTM) and properly pooling teams (B8) incrementally improves the model's accuracy.
+However, the complete scene may correspond to a higher-level activity
+such as:
 
-![Ablation Results](image_6cd03b.png)
-*Figure: The original paper's baseline scores demonstrating the impact of each component, culminating in 81.9% accuracy for the Two-Stage Hierarchical Model.*
+``` text
+Left Spike
+```
 
----
+Therefore, the model must understand how the individual actions and
+their temporal evolution combine into a group activity.
 
-## 🚀 5. Implementation Challenges & Future Work
+The task can be summarized as:
 
-### The End-to-End Challenge
-A major implementation challenge (aside from memory constraints) is building the 2-stage model as a **single end-to-end network**:
-* Input: 12 cropped users (ensuring each person is tracked consistently).
-* Architecture: Need 3 modules -> `LSTM 1 (Person)` -> `Proper Team Pooling` -> `LSTM 2 (Scene)`.
-* Optimization: Calculating simultaneous losses on person action and scene classification to share the gradient flow.
+``` text
+Individual Actions
+        +
+Temporal Dynamics
+        +
+Spatial / Team Structure
+        ↓
+Group Activity Recognition
+```
 
-### Expanding the Network
-* **Graph Neural Networks (GNN):** You can extend this network by applying GNNs. (See the 2018 paper: *Hierarchical relational networks for group activity recognition and retrieval*).
-* **Literature Review:** The field is vast. Studying similar techniques applied to different domains, such as **motion prediction for cars in self-driving**, can yield significant insights into how these temporal and spatial ideas advance.
+------------------------------------------------------------------------
+
+# 3. Why Group Activity Recognition Is Difficult
+
+## 3.1 Multiple People
+
+A volleyball scene contains multiple players, and each player may have a
+different role.
+
+The model therefore cannot rely on a single object or a single person's
+appearance.
+
+------------------------------------------------------------------------
+
+## 3.2 Different Actions at the Same Time
+
+Several actions can occur simultaneously.
+
+For example:
+
+``` text
+Player A → Standing
+Player B → Moving
+Player C → Setting
+Player D → Jumping
+Player E → Blocking
+```
+
+The model must combine these actions to understand the activity of the
+entire group.
+
+------------------------------------------------------------------------
+
+## 3.3 Temporal Dynamics
+
+A single frame may not contain enough information to distinguish
+activities.
+
+A player may appear to be standing in one frame and then move, jump, or
+block in subsequent frames.
+
+For example:
+
+``` text
+t-2 → Standing
+t-1 → Moving
+t  → Jumping
+t+1 → Blocking
+```
+
+The sequence is therefore more informative than an isolated image.
+
+This motivates the use of recurrent temporal models such as LSTMs.
+
+------------------------------------------------------------------------
+
+## 3.4 Spatial and Team Information
+
+Volleyball naturally contains two opposing teams located on different
+sides of the court.
+
+Therefore:
+
+``` text
+Left Spike  ≠ Right Spike
+Left Set    ≠ Right Set
+Left Pass   ≠ Right Pass
+Left Winpoint ≠ Right Winpoint
+```
+
+If all players are pooled into one unordered representation, the model
+may lose information about which players belong to which team.
+
+This observation motivates **team-aware pooling**.
+
+------------------------------------------------------------------------
+
+# 4. Hierarchical View of the Problem
+
+The complete problem can be viewed as a hierarchy:
+
+``` text
+                         GROUP ACTIVITY
+                               ↑
+                         Group Dynamics
+                               ↑
+                       Team Representation
+                               ↑
+                      Player Representations
+                               ↑
+                       Person Dynamics
+                               ↑
+                      Individual Actions
+                               ↑
+                           Video Frames
+```
+
+The motivation is that a group activity is not independent of the people
+performing it.
+
+Instead:
+
+``` text
+Video
+  ↓
+Player-level visual information
+  ↓
+Person-level temporal dynamics
+  ↓
+Team-level aggregation
+  ↓
+Group-level temporal dynamics
+  ↓
+Group activity
+```
+
+------------------------------------------------------------------------
+
+# 5. Volleyball Dataset
+
+The experiments use the **Volleyball Dataset**, collected from publicly
+available YouTube volleyball videos.
+
+The dataset was specifically designed for group activity recognition and
+contains annotations at both the individual-player level and the
+group-activity level.
+
+### Dataset Summary
+
+  Property                      Value
+  --------------------------- -------
+  Videos                           55
+  Annotated frames              4,830
+  Individual action classes         9
+  Group activity classes            8
+
+The dataset contains:
+
+-   Video sequences.
+-   Annotated target frames.
+-   Player bounding boxes.
+-   Individual action labels.
+-   Group activity labels.
+-   Temporal context around each annotated frame.
+
+------------------------------------------------------------------------
+
+## Example: Group Activity Annotation
+
+```{=html}
+<p align="center">
+```
+`<img src="docs/images/group_activity_annotation.png" width="750">`{=html}
+```{=html}
+</p>
+```
+**Figure 1.** Example frame labeled as **Left Spike**, with bounding
+boxes around the players.
+
+------------------------------------------------------------------------
+
+## Example: Individual Player Annotations
+
+```{=html}
+<p align="center">
+```
+`<img src="docs/images/person_action_annotation.png" width="750">`{=html}
+```{=html}
+</p>
+```
+**Figure 2.** Example of individual player annotations such as
+**Standing**, **Setting**, and **Blocking**.
+
+------------------------------------------------------------------------
+
+# 6. Dataset Statistics
+
+The dataset contains two different annotation levels:
+
+``` text
+                    Volleyball Dataset
+                           │
+             ┌─────────────┴─────────────┐
+             │                           │
+      Individual Actions          Group Activities
+             │                           │
+          9 Classes                  8 Classes
+```
+
+The individual-level annotations describe what each visible player is
+doing.
+
+The group-level annotation describes what the overall team/group is
+doing.
+
+------------------------------------------------------------------------
+
+# 7. Group Activity Classes
+
+There are **8 group activity classes**.
+
+  Group Activity     Instances
+  ---------------- -----------
+  Right Set                644
+  Right Spike              623
+  Right Pass               801
+  Right Winpoint           295
+  Left Winpoint            367
+  Left Pass                826
+  Left Spike               642
+  Left Set                 633
+
+The labels encode both the **type of activity** and the **side of the
+court**.
+
+``` text
+Set
+├── Left Set
+└── Right Set
+
+Spike
+├── Left Spike
+└── Right Spike
+
+Pass
+├── Left Pass
+└── Right Pass
+
+Winpoint
+├── Left Winpoint
+└── Right Winpoint
+```
+
+Therefore, the model must recognize not only *what* activity is
+happening but also *which side* is performing it.
+
+------------------------------------------------------------------------
+
+# 8. Individual Player Action Classes
+
+Each visible player can be assigned one of **9 action classes**.
+
+  Player Action     Instances
+  --------------- -----------
+  Waiting               3,601
+  Setting               1,332
+  Digging               2,333
+  Falling               1,241
+  Spiking               1,216
+  Blocking              2,458
+  Jumping                 341
+  Moving                5,121
+  Standing             38,696
+
+These labels provide fine-grained information about individual behavior.
+
+For example:
+
+``` text
+Player 1 → Setting
+Player 2 → Jumping
+Player 3 → Blocking
+Player 4 → Moving
+Player 5 → Standing
+```
+
+These individual actions provide evidence for recognizing the
+higher-level group activity.
+
+------------------------------------------------------------------------
+
+## Class Imbalance
+
+The individual action labels are highly imbalanced.
+
+For example:
+
+``` text
+Standing → 38,696
+Jumping  →    341
+```
+
+This imbalance is important when training an individual action
+classifier because a model can become biased toward frequent classes.
+
+------------------------------------------------------------------------
+
+# 9. Dataset Organization
+
+The dataset contains **55 videos**, indexed from `0` to `54`.
+
+Conceptually:
+
+``` text
+volleyball/
+│
+├── 0/
+│   ├── annotations.txt
+│   └── ...
+│
+├── 1/
+│   ├── annotations.txt
+│   └── ...
+│
+├── ...
+│
+└── 54/
+    ├── annotations.txt
+    └── ...
+```
+
+Each video directory contains annotated frames.
+
+For example:
+
+``` text
+volleyball/39/29885/
+```
+
+means:
+
+``` text
+Video ID = 39
+Frame ID = 29885
+```
+
+------------------------------------------------------------------------
+
+# 10. Annotation Format
+
+Each annotation line contains:
+
+``` text
+{Frame ID} {Frame Activity Class} {Player Annotation} {Player Annotation} ...
+```
+
+Each player annotation has the form:
+
+``` text
+{Action Class} X Y W H
+```
+
+where:
+
+  Field          Meaning
+  -------------- ---------------------------
+  Action Class   Individual player action
+  X              Bounding-box x-coordinate
+  Y              Bounding-box y-coordinate
+  W              Bounding-box width
+  H              Bounding-box height
+
+Therefore, each player annotation tells the model:
+
+``` text
+WHERE is the player?
+        +
+WHAT is the player doing?
+```
+
+------------------------------------------------------------------------
+
+# 11. Temporal Window
+
+Each annotated frame has temporal context.
+
+For example, for target frame:
+
+``` text
+29885
+```
+
+the available temporal neighborhood is:
+
+``` text
+29865 ... 29884
+29885
+29886 ... 29905
+```
+
+This corresponds to:
+
+``` text
+20 frames before
+        +
+Target frame
+        +
+20 frames after
+```
+
+for a total of **41 frames**.
+
+However, the original experiments use:
+
+``` text
+5 frames before
++
+Target frame
++
+4 frames after
+```
+
+giving a sequence of **9 frames**.
+
+``` text
+t-5  t-4  t-3  t-2  t-1   t   t+1  t+2  t+3
+ │    │    │    │    │    │    │    │    │
+ └────┴────┴────┴────┴────┴────┴────┴────┴──→ Time
+```
+
+The relatively short temporal window is important because volleyball
+scenes can change rapidly.
+
+------------------------------------------------------------------------
+
+# 12. Train / Validation / Test Split
+
+The dataset is split at the **video level**, rather than randomly
+splitting frames.
+
+This prevents highly similar frames from the same video from appearing
+in both training and evaluation sets.
+
+## Training Videos
+
+``` text
+1, 3, 6, 7, 10, 13, 15, 16, 18, 22, 23,
+31, 32, 36, 38, 39, 40, 41, 42, 48, 50,
+52, 53, 54
+```
+
+**24 videos**
+
+## Validation Videos
+
+``` text
+0, 2, 8, 12, 17, 19, 24, 26, 27, 28,
+30, 33, 46, 49, 51
+```
+
+**15 videos**
+
+## Test Videos
+
+``` text
+4, 5, 9, 11, 14, 20, 21, 25, 29, 34,
+35, 37, 43, 44, 45, 47
+```
+
+**16 videos**
+
+------------------------------------------------------------------------
+
+## Annotated Frame Split
+
+The original dataset description reports:
+
+  Split        Annotated Frames
+  ---------- ------------------
+  Training                3,493
+  Testing                 1,337
+  Total                   4,830
+
+The important point is that the split is performed by **video**, not by
+independently sampling frames.
+
+------------------------------------------------------------------------
+
+# 13. Original Hierarchical Architecture
+
+The original paper proposes a two-stage hierarchical temporal model.
+
+```{=html}
+<p align="center">
+```
+`<img src="docs/images/original_hierarchical_architecture.png" width="850">`{=html}
+```{=html}
+</p>
+```
+**Figure 3.** High-level view of the hierarchical approach: individual
+people are modeled using temporal models and their representations are
+integrated into a higher-level group model.
+
+The architecture contains two temporal levels:
+
+``` text
+                    VIDEO
+                      │
+             ┌────────┴────────┐
+             │                 │
+          Player 1          Player N
+             │                 │
+            CNN               CNN
+             │                 │
+       Person LSTM       Person LSTM
+             │                 │
+             └────────┬────────┘
+                      │
+                   Pooling
+                      │
+              Group Representation
+                      │
+                  Group LSTM
+                      │
+                      ↓
+               Group Activity
+```
+
+------------------------------------------------------------------------
+
+# 14. Person-Level Temporal Modeling
+
+The first stage models the temporal dynamics of each individual player.
+
+For each player, a sequence of crops is extracted from consecutive
+frames.
+
+``` text
+Player Crop t-5
+Player Crop t-4
+Player Crop t-3
+Player Crop t-2
+Player Crop t-1
+Player Crop t
+Player Crop t+1
+Player Crop t+2
+Player Crop t+3
+```
+
+Each crop is passed through a CNN:
+
+``` text
+Player Crop
+     ↓
+    CNN
+     ↓
+Visual Feature
+```
+
+The sequence of visual features is then processed by an LSTM:
+
+``` text
+Feature t-5 ─┐
+Feature t-4 ─┤
+Feature t-3 ─┤
+Feature t-2 ─┤
+Feature t-1 ─┤
+Feature t   ─┤
+Feature t+1 ─┤──→ Person LSTM
+Feature t+2 ─┤
+Feature t+3 ─┘
+                  ↓
+          Player Representation
+```
+
+The Person LSTM therefore learns the temporal evolution of an individual
+player.
+
+------------------------------------------------------------------------
+
+# 15. Group-Level Temporal Modeling
+
+After obtaining a temporal representation for every player, the model
+aggregates these representations.
+
+``` text
+Player 1 → Person Feature
+Player 2 → Person Feature
+Player 3 → Person Feature
+...
+Player N → Person Feature
+```
+
+The player features are pooled to form a group representation:
+
+``` text
+Player Features
+      ↓
+   Pooling
+      ↓
+Group Representation
+```
+
+A second LSTM then models the temporal evolution of the group:
+
+``` text
+Group Representation t-5
+Group Representation t-4
+Group Representation t-3
+...
+Group Representation t+3
+              ↓
+          Group LSTM
+              ↓
+       Group Activity
+```
+
+This produces the hierarchical structure:
+
+``` text
+Person Dynamics
+      ↓
+Player Representations
+      ↓
+Group Aggregation
+      ↓
+Group Dynamics
+      ↓
+Group Activity
+```
+
+------------------------------------------------------------------------
+
+# 16. Team-Aware Pooling
+
+A key observation in the original work is that pooling all players
+together can remove important spatial information.
+
+Consider the two teams:
+
+``` text
+Team 1
+├── Player 1
+├── Player 2
+├── Player 3
+├── Player 4
+├── Player 5
+└── Player 6
+
+Team 2
+├── Player 7
+├── Player 8
+├── Player 9
+├── Player 10
+├── Player 11
+└── Player 12
+```
+
+### Global Pooling
+
+If all players are pooled together:
+
+``` text
+12 Players
+     ↓
+Global Pooling
+     ↓
+One Group Representation
+```
+
+the model can lose information about the side of the court.
+
+This can lead to confusion such as:
+
+``` text
+Left Spike  ↔ Right Spike
+Left Set    ↔ Right Set
+Left Pass   ↔ Right Pass
+Left Winpoint ↔ Right Winpoint
+```
+
+------------------------------------------------------------------------
+
+## Two-Group Pooling
+
+The improved model pools the two teams independently:
+
+``` text
+                 Player Features
+                       │
+              ┌────────┴────────┐
+              │                 │
+           Team 1            Team 2
+              │                 │
+          Max Pool           Max Pool
+              │                 │
+        Team Feature 1   Team Feature 2
+              │                 │
+              └────────┬────────┘
+                       │
+                  Concatenation
+                       │
+                 Group Feature
+                       │
+                   Group LSTM
+                       │
+                       ↓
+                Group Activity
+```
+
+Mathematically:
+
+``` text
+Team_1 = MaxPool(Player_1, ..., Player_6)
+
+Team_2 = MaxPool(Player_7, ..., Player_12)
+
+Group = Concatenate(Team_1, Team_2)
+```
+
+This preserves the distinction between the two teams before the final
+group-level temporal model.
+
+------------------------------------------------------------------------
+
+# 17. Baseline Experiments
+
+The baseline experiments progressively add components to understand
+their contribution.
+
+The progression is:
+
+``` text
+B1
+ ↓
+B3
+ ↓
+B4
+ ↓
+B5
+ ↓
+B6
+ ↓
+B7
+ ↓
+B8
+```
+
+The baselines investigate:
+
+-   Single-frame recognition.
+-   Person-level representation.
+-   Temporal information.
+-   Person-level temporal dynamics.
+-   Group-level temporal dynamics.
+-   Hierarchical temporal modeling.
+-   Team-aware spatial pooling.
+
+------------------------------------------------------------------------
+
+# 18. Baseline B1 --- Image Classification
+
+B1 is the simplest baseline.
+
+A single frame is used to directly classify the group activity.
+
+``` text
+Single Frame
+     ↓
+    CNN
+     ↓
+Group Activity
+```
+
+No explicit temporal modeling is used.
+
+The model therefore learns:
+
+``` text
+Image → Group Activity
+```
+
+### Question
+
+> Can the group activity be recognized from a single frame?
+
+------------------------------------------------------------------------
+
+# 19. Baseline B3 --- Fine-Tuned Person Classification
+
+B3 introduces explicit individual-player information.
+
+Player crops are extracted using the annotated bounding boxes.
+
+``` text
+Full Frame
+    ↓
+Player Bounding Boxes
+    ↓
+Player Crops
+    ↓
+CNN
+    ↓
+Player Features
+```
+
+For multiple players:
+
+``` text
+Player 1 → CNN → Feature 1
+Player 2 → CNN → Feature 2
+Player 3 → CNN → Feature 3
+...
+Player N → CNN → Feature N
+```
+
+The features are then pooled and classified:
+
+``` text
+Player Features
+      ↓
+   Pooling
+      ↓
+Scene Representation
+      ↓
+Group Classifier
+      ↓
+Group Activity
+```
+
+### Question
+
+> Does explicit modeling of individual players improve group activity
+> recognition?
+
+------------------------------------------------------------------------
+
+# 20. Baseline B4 --- Temporal Model with Image Features
+
+B4 introduces temporal information at the scene level.
+
+Instead of using one frame, a sequence of 9 frames is processed.
+
+``` text
+Frame t-5 → CNN → Feature
+Frame t-4 → CNN → Feature
+Frame t-3 → CNN → Feature
+Frame t-2 → CNN → Feature
+Frame t-1 → CNN → Feature
+Frame t   → CNN → Feature
+Frame t+1 → CNN → Feature
+Frame t+2 → CNN → Feature
+Frame t+3 → CNN → Feature
+                    ↓
+                  LSTM
+                    ↓
+             Group Activity
+```
+
+### Question
+
+> Does temporal information improve group activity recognition?
+
+------------------------------------------------------------------------
+
+# 21. Baseline B5 --- Temporal Model with Person Features
+
+B5 moves temporal modeling to the individual-player level.
+
+For each player:
+
+``` text
+Player Crop Sequence
+        ↓
+       CNN
+        ↓
+Feature Sequence
+        ↓
+    Person LSTM
+        ↓
+Player Temporal Feature
+```
+
+The temporal representation of each player is then pooled to recognize
+the group activity.
+
+The main difference is:
+
+``` text
+B4:
+Frame-level temporal modeling
+
+B5:
+Player-level temporal modeling
+```
+
+### Question
+
+> Is it better to model the temporal dynamics of individual players?
+
+------------------------------------------------------------------------
+
+# 22. Baseline B6 --- Two-Stage Model Without LSTM 1
+
+B6 uses individual player features but does not use the first LSTM.
+
+``` text
+Player
+  ↓
+ CNN
+  ↓
+Player Feature
+  ↓
+Pooling
+  ↓
+Frame Representation
+  ↓
+Group LSTM
+  ↓
+Group Activity
+```
+
+The temporal modeling happens only at the group level.
+
+### Question
+
+> Is group-level temporal modeling sufficient without a person-level
+> temporal model?
+
+------------------------------------------------------------------------
+
+# 23. Baseline B7 --- Two-Stage Model Without LSTM 2
+
+B7 introduces the hierarchical temporal structure.
+
+Each player is modeled over time:
+
+``` text
+Player Crop Sequence
+        ↓
+       CNN
+        ↓
+   Person LSTM
+        ↓
+Player Temporal Feature
+```
+
+The player representations are then pooled:
+
+``` text
+Player Temporal Features
+          ↓
+      Global Pooling
+          ↓
+   Group Representation
+          ↓
+      Group LSTM
+          ↓
+    Group Activity
+```
+
+The model therefore contains two temporal stages:
+
+``` text
+Person LSTM
+     ↓
+Group LSTM
+```
+
+### Question
+
+> Does hierarchical temporal modeling improve over using only a single
+> temporal level?
+
+------------------------------------------------------------------------
+
+# 24. Baseline B8 --- Two-Stage Hierarchical Model
+
+B8 extends the hierarchical model by preserving the two-team structure.
+
+Instead of:
+
+``` text
+All Players
+     ↓
+Global Pooling
+     ↓
+Group LSTM
+```
+
+the model uses:
+
+``` text
+Team 1 Players
+     ↓
+Max Pooling
+     ↓
+Team 1 Feature
+          \
+           → Concatenation → Group LSTM
+          /
+Team 2 Feature
+     ↑
+Max Pooling
+     ↑
+Team 2 Players
+```
+
+The full architecture is:
+
+``` text
+                     Player Crops
+                          │
+                          ↓
+                 CNN Feature Extraction
+                          │
+                          ↓
+                    Person LSTM
+                          │
+                          ↓
+              Player Temporal Features
+                          │
+              ┌───────────┴───────────┐
+              │                       │
+           Team 1                   Team 2
+              │                       │
+         Max Pooling             Max Pooling
+              │                       │
+        Team Feature 1          Team Feature 2
+              │                       │
+              └───────────┬───────────┘
+                          │
+                     Concatenation
+                          │
+                          ↓
+                  Group Representation
+                          │
+                          ↓
+                     Group LSTM
+                          │
+                          ↓
+                  Group Classifier
+                          │
+                          ↓
+                   Group Activity
+```
+
+### Question
+
+> Does preserving the spatial/team structure improve group activity
+> recognition?
+
+------------------------------------------------------------------------
+
+# 25. Original Results
+
+The original work reports the following baseline performance on the
+Volleyball Dataset.
+
+  Baseline   Method                                   Accuracy
+  ---------- ------------------------------------- -----------
+  **B1**     Image Classification                    **66.7%**
+  **B2**     Person Classification                   **64.6%**
+  **B3**     Fine-Tuned Person Classification        **68.1%**
+  **B4**     Temporal Model with Image Features      **63.1%**
+  **B5**     Temporal Model with Person Features     **67.6%**
+  **B6**     Two-Stage Model without LSTM 1          **74.7%**
+  **B7**     Two-Stage Model without LSTM 2          **80.2%**
+  **B8**     Two-Stage Hierarchical Model            **81.9%**
+
+The results show the benefit of progressively modeling:
+
+``` text
+Individual Players
+        +
+Temporal Dynamics
+        +
+Hierarchical Structure
+        +
+Team-Level Spatial Information
+```
+
+------------------------------------------------------------------------
+
+# 26. Main Insight
+
+The central insight behind the model is:
+
+> **A group activity can be inferred from the temporal dynamics of the
+> individuals participating in the activity.**
+
+Therefore, simply analyzing the complete image is not enough.
+
+A stronger representation is obtained by following the hierarchy:
+
+``` text
+Video Frames
+     ↓
+Player Crops
+     ↓
+CNN Features
+     ↓
+Person-Level LSTM
+     ↓
+Team-Aware Pooling
+     ↓
+Group-Level LSTM
+     ↓
+Group Activity
+```
+
+This architecture captures two complementary types of information:
+
+### Individual Dynamics
+
+``` text
+What is each player doing?
+How is that player's action changing over time?
+```
+
+### Group Dynamics
+
+``` text
+How do the players interact?
+How does the team-level configuration evolve over time?
+What group activity does this interaction represent?
+```
+
+The problem therefore combines:
+
+-   Computer Vision
+-   CNN feature extraction
+-   Multi-person representation
+-   Temporal modeling
+-   LSTM networks
+-   Spatial reasoning
+-   Team-aware aggregation
+-   Group activity classification
+
+------------------------------------------------------------------------
+
+# 27. Project Scope
+
+This repository focuses on implementing and studying the group activity
+recognition problem through a sequence of baselines, beginning with
+simple image-level classification and progressing toward hierarchical
+temporal models.
+
+The implementation may differ from the original Caffe-based
+implementation in several engineering and architectural details. The
+**problem definition, dataset, task formulation, and baseline
+progression** are based on the original work.
+
+The goal is to make the problem understandable from the dataset level
+all the way to the hierarchical temporal architecture.
+
+The implementation is organized around the following conceptual
+pipeline:
+
+``` text
+Raw Volleyball Videos
+        ↓
+Annotated Frames
+        ↓
+Player Bounding Boxes
+        ↓
+Player Crops
+        ↓
+Visual Feature Extraction
+        ↓
+Person-Level Modeling
+        ↓
+Player / Team Pooling
+        ↓
+Group-Level Temporal Modeling
+        ↓
+Group Activity Prediction
+```
+
+------------------------------------------------------------------------
+
+# 28. References
+
+## Original CVPR Paper
+
+M. S. Ibrahim, S. Muralidharan, Z. Deng, A. Vahdat, and G. Mori,
+
+**"A Hierarchical Deep Temporal Model for Group Activity Recognition,"**
+
+*Proceedings of the IEEE Conference on Computer Vision and Pattern
+Recognition (CVPR)*, 2016.
+
+## Extended Work
+
+M. S. Ibrahim, S. Muralidharan, Z. Deng, A. Vahdat, and G. Mori,
+
+**"Hierarchical Deep Temporal Models for Group Activity Recognition,"**
+
+arXiv:1607.02643, 2016.
+
+## Original Repository
+
+https://github.com/mostafa-saad/deep-activity-rec
+
+## Citation
+
+``` bibtex
+@inproceedings{Ibrahim_2016_CVPR,
+    author    = {Ibrahim, Mostafa S. and
+                 Muralidharan, Srikanth and
+                 Deng, Zhiwei and
+                 Vahdat, Arash and
+                 Mori, Greg},
+    title     = {A Hierarchical Deep Temporal Model for Group Activity Recognition},
+    booktitle = {Proceedings of the IEEE Conference on Computer Vision and
+                 Pattern Recognition (CVPR)},
+    year      = {2016}
+}
+
+@article{Ibrahim2016Hierarchical,
+    author  = {Ibrahim, Mostafa S. and
+               Muralidharan, Srikanth and
+               Deng, Zhiwei and
+               Vahdat, Arash and
+               Mori, Greg},
+    title   = {Hierarchical Deep Temporal Models for Group Activity Recognition},
+    journal = {arXiv preprint arXiv:1607.02643},
+    year    = {2016}
+}
+```
