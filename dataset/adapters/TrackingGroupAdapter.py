@@ -46,7 +46,7 @@ import torchvision
 class TrackingAdapter(BaseAdapter):
 
   
-    def __init__(self, *args, cache_size=600, max_players=12, **kwargs):
+    def __init__(self, *args, cache_size=1100, max_players=12, **kwargs):
         super().__init__(*args, **kwargs)
         self.cache_size = cache_size
         self.cache = OrderedDict()

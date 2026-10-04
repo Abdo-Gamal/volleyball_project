@@ -45,7 +45,7 @@ rsync -avz --progress \
   --exclude='*.pth' \
   --exclude='*.swp' \
   --exclude='*.save' \
-  --exclude='__pychache__' \
+  --exclude='__pycache__' \
   ./ assu002@hpclogin.mohesr.gov.eg:/nfs/slurm/assu002/projects/volleyball_project/
 
   
