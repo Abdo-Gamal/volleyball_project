@@ -42,9 +42,11 @@ from PIL import Image
 from collections import OrderedDict
 from torchvision import tv_tensors
 from dataset.adapters.base_adapter import BaseAdapter
-
+import torchvision
 class TrackingAdapter(BaseAdapter):
-    def __init__(self, *args, cache_size=1000, max_players=12, **kwargs):
+
+  
+    def __init__(self, *args, cache_size=600, max_players=12, **kwargs):
         super().__init__(*args, **kwargs)
         self.cache_size = cache_size
         self.cache = OrderedDict()
@@ -117,4 +119,23 @@ class TrackingAdapter(BaseAdapter):
             "positions":group_pos.clone(),
         }
 
+        return input_data, label_int
+    
+    def __getitem__(self, idx):
+        input_data, label_int = self.load_sample(idx)
+        
+        if self.transform is not None:
+            
+            persons = input_data["persons"] # (N, T, C, H, W) 
+            N, T, C, H, W = persons.shape
+            
+            persons_4d = persons.view(N * T, C, H, W)
+            persons_video = tv_tensors.Video(persons_4d)
+            
+            transformed_video = self.transform(persons_video)
+            
+            _, _, new_H, new_W = transformed_video.shape
+            
+            input_data["persons"] = transformed_video.view(N, T, C, new_H, new_W)
+            
         return input_data, label_int
