@@ -139,5 +139,57 @@ When teams are grouped and processed individually before concatenation (as intro
 
 ---
 
+## 💻 Installation & Usage
 
+### 1. Clone the Repository
+```bash
+git clone https://github.com/Sh-31/Group-Activity-Recognition.git
+cd Group-Activity-Recognition
+```
 
+### 2. Install Dependencies
+```bash
+pip3 install -r requirements.txt
+```
+
+### 3. Dataset Download
+*   Enable Kaggle's public API by getting your `kaggle.json` file.
+*   Run the provided shell script to download the 60GB dataset:
+```bash
+chmod 600 .kaggle/kaggle.json 
+chmod +x script/script_download_volleball_dataset.sh
+./script/script_download_volleball_dataset.sh
+```
+*(Alternatively, download the dataset directly via [Google Drive](https://drive.google.com/drive/u/2/folders/16Let5hmxFejuy_fz3nq81tqNoC0qGgRe)).*
+
+### 4. Download Pre-trained Model Checkpoints
+You can download the specific PyTorch checkpoints directly from Kaggle using Python:
+```python
+import kagglehub
+
+# Download the latest version
+path = kagglehub.model_download("sherif31/group-activity-recognition/pyTorch/v1")
+print("Path to model files:", path)
+```
+
+---
+
+## 📖 Citation
+
+If you utilize this approach or the extended dataset in your research, please consider citing the original authors:
+
+```bibtex
+@inproceedings{msibrahiCVPR16deepactivity,
+  author    = {Mostafa S. Ibrahim and Srikanth Muralidharan and Zhiwei Deng and Arash Vahdat and Greg Mori},
+  title     = {A Hierarchical Deep Temporal Model for Group Activity Recognition.},
+  booktitle = {2016 IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year      = {2016}
+}
+
+@article{msibrahiPAMI16deepactivity,
+  author    = {Mostafa S. Ibrahim and Srikanth Muralidharan and Zhiwei Deng and Arash Vahdat and Greg Mori},
+  title     = {Hierarchical Deep Temporal Models for Group Activity Recognition.},
+  journal   = {arXiv preprint arXiv:1607.02643},
+  year      = {2016}
+}
+```
