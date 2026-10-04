@@ -4,7 +4,6 @@
 
 import sys
 import os
-from models.baseline_model5.GroupBaselineModel import GroupBaselineModel
 import torch
 import torch.distributed as dist
 from torch.utils.data.distributed import DistributedSampler
@@ -75,9 +74,7 @@ weight_decay=b5_cfg['train']['weight_decay']
 eta_min=b5_cfg['train']['eta_min']
 drop_p=b5_cfg['train']['drop_p']
 gamma=b5_cfg['train']['gamma']
-hidden_dim=b5_cfg['train']['hidden_dim']
-lstm_num_layer=b5_cfg['train']['lstm_num_layer']
-print_perclass=b5_cfg['train']['print_PerClass']    
+print_perclass=b5_cfg['train']['print_perclass']    
 output_dir=b5_cfg['output']['root']
 
 
@@ -90,7 +87,7 @@ from dataset.transforms  import B5GroupTransform
 from dataset.data_loader import build_dataloader
 ##############
 from models.backbones.resnet50 import ResNet50
-from models.baseline_model5.baseline5 import  personModel
+from models.baseline_model5.baseline5 import  B5Model
 from models.baseline_model5.GroupBaselineModel  import GroupBaselineModel
 
 
@@ -98,7 +95,7 @@ from models.baseline_model5.GroupBaselineModel  import GroupBaselineModel
 from trainers.group_trainer import GroupTrainer_ddp
 
 from utils.checkpoint import save_checkpoint
-from utils.label_maps import GROUP_LABELS
+from utils.label_maps import GROUP_LABELS ,GROUP_IDX_TO_ACTION,GROUP_ACTION_TO_IDX
 from utils.metrics import accuracy ,f1_calc
 
 from losses.focal_loss import FocalLoss
@@ -114,8 +111,8 @@ val_transforms   = tfm.val()
 train_raw_sample=TrackingRawDataset(root,tracking_annotation,train_videos)
 val_raw_sample=TrackingRawDataset(root,tracking_annotation,val_videos)
 
-train_dataset=TrackingAdapter(train_raw_sample,train_transforms,GROUP_LABELS)
-val_dataset=TrackingAdapter(val_raw_sample,val_transforms,GROUP_LABELS)
+train_dataset=TrackingAdapter(train_raw_sample,train_transforms,GROUP_ACTION_TO_IDX)
+val_dataset=TrackingAdapter(val_raw_sample,val_transforms,GROUP_ACTION_TO_IDX)
 
 # [CHANGED 3] print the sizes once (before: every process printed them -> 4 copies)
 if global_rank == 0:
@@ -133,8 +130,8 @@ val_loader=build_dataloader(val_dataset,batch_size,num_workers,shuffle=False,sam
 device = torch.device(f"cuda:{local_rank}")
 
 backbone = ResNet50()
-pretrained_person_model=personModel(backbone,num_classes=9,drop_p=.5,hidden_dim=512,num_layers=1,bidirectional=True)
-ckp=torch.load(b5_cfg['model']['path'],map_location=device) 
+pretrained_person_model=B5Model(backbone,num_classes=9,drop_p=.5,hidden_dim=512,num_layers=1,bidirectional=True)
+ckp=torch.load(b5_cfg['model']['path'],map_location=device,weights_only=True) 
 pretrained_person_model.load_state_dict(ckp["model_state"])
 
 
@@ -169,7 +166,7 @@ trainer=GroupTrainer_ddp(
     device=device,
     epochs=epochs,
     output_dir=output_dir,
-    class_map=GROUP_LABELS,
+    class_map=GROUP_ACTION_TO_IDX,
     print_perclass=print_perclass,
     checkpoint_name="best_group_model.pth",
 
