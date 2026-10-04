@@ -14,7 +14,7 @@
 # [CHANGED 1] %j in the log name = job number, so a new job does not overwrite the old log
 # [CHANGED 2] --nodelist=gpu1 : the dataset is in gpu1's /tmp (a local disk), so the job must run on gpu1.
 #             Remove this line and the job may land on another node, which has no data there.
-
+export PYTORCH_NVML_BASED_CUDA_CHECK=0
 echo "========================================"
 echo " VOLLEYBALL PROJECT TRAINING"
 echo " Started : $(date)"
