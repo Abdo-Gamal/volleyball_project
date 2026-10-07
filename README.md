@@ -12,8 +12,8 @@ This project solves the problem of **Group Activity Recognition** by building a 
 1. **Stage 1 (Person-Level):** An LSTM model is designed to represent the dynamic actions of individual people in a sequence.
 2. **Stage 2 (Group-Level):** A second LSTM model aggregates this individual person-level information to understand the entire scene's activity.
 
-![High-level hierarchical model](images/fig1.png)[cite: 1]
-*Figure 1: A high-level look at our hierarchical model. Each person's movement is tracked individually to capture their dynamics, and these models are then integrated into a higher-level network to recognize the full scene's activity.*[cite: 1]
+![High-level hierarchical model](images/fig1.png)
+*Figure 1: A high-level look at our hierarchical model. Each person's movement is tracked individually to capture their dynamics, and these models are then integrated into a higher-level network to recognize the full scene's activity.*
 
 ---
 
@@ -31,7 +31,7 @@ Our model is designed to be highly intuitive. Here is a simple breakdown of how 
 
 ### 3. Adding Spatial Awareness
 ![Spatial Pooling](images/fig4.png)[cite: 4]
-*Figure 4: Where players are located on the court matters! While basic models drop spatial information, our updated model uses a 2-group pooling strategy to capture the spatial arrangements and formations of the players.*[cite: 4]
+*Figure 4: Where players are located on the court matters! While basic models drop spatial information, our updated model uses a 2-group pooling strategy to capture the spatial arrangements and formations of the players.*
 
 ---
 
