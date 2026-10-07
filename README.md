@@ -65,14 +65,10 @@ We labeled the data at both the team and individual levels:
 
 ### 🔗 Downloads & Updates
 * **[Main Dataset Download Link](https://drive.google.com/drive/folders/1rmsrG1mgkwxOKhsr-QYoi9Ss92wQmCOS)** *(Combined Google Drive folder).*
-* **Update 1 (Trajectories):** Extracted player trajectories (generated via Dlib Tracker) are now available to save you processing time.
-* **Update 2 (Detectors):** Two Faster-RCNN detectors trained by Jiawei (Eric) He for person and action detection are provided to help speed up custom pipelines. 
-* **Update 3 (Manual Annotations):** Manual trajectory annotations kindly provided by Norimichi Ukita. *(Please cite Sendo & Ukita, MVA 2019 if used).*
-* **Update 4 (Ball Locations):** Manual ball location annotations provided by Mauricio Perez. *(Please cite their Skeleton-based relational reasoning paper if used).*
 
 ---
 
-## 📊 Results & Performance
+## 📊 Original Results & Performance
 
 Our Two-stage Hierarchical Model was rigorously tested and significantly outperforms standard baselines.
 
