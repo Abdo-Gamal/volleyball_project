@@ -1,156 +1,79 @@
-# Group Activity Recognition
+# A Hierarchical Deep Temporal Model for Group Activity Recognition
 
-A modern implementation of the CVPR 2016 paper: [*A Hierarchical Deep Temporal Model for Group Activity Recognition*](https://arxiv.org/abs/1607.02643) by Mostafa S. Ibrahim et al.
+**Based on the CVPR 2016 paper by Mostafa S. Ibrahim, Srikanth Muralidharan, Zhiwei Deng, Arash Vahdat, and Greg Mori.**
 
-This project tackles the complex task of group activity recognition by inferring the temporal dynamics of a whole activity based on the individual dynamics of the people involved. It employs a two-stage hierarchical architecture (LSTM/GRU) to capture both individual-level actions and group-level temporal interactions.
+---
 
-## 📑 Table of Contents
+## 📖 Introduction & Problem Description
 
-* [Abstract & Key Updates](#abstract--key-updates)
+When watching a sports game, how do we know what play a team is executing? We usually figure out the **whole team's activity** by observing the **actions of individual players** over time. 
 
-* [Dataset Overview](#dataset-overview)
+This project solves the problem of **Group Activity Recognition** by building a deep learning model that mimics this exact human logic. We introduce a **2-stage deep temporal model** powered by Long Short-Term Memory (LSTM) networks:
+1. **Stage 1 (Person-Level):** An LSTM model is designed to represent the dynamic actions of individual people in a sequence.
+2. **Stage 2 (Group-Level):** A second LSTM model aggregates this individual person-level information to understand the entire scene's activity.
 
-* [Model Architecture](#model-architecture)
+![High-level hierarchical model](images/fig1.png)[cite: 1]
+*Figure 1: A high-level look at our hierarchical model. Each person's movement is tracked individually to capture their dynamics, and these models are then integrated into a higher-level network to recognize the full scene's activity.*[cite: 1]
 
-* [Ablation Study & Baselines](#ablation-study--baselines)
+---
 
-* [Performance & Results](#performance--results)
+## 🧠 How the Architecture Works
 
-* [Interesting Observations](#interesting-observations)
+Our model is designed to be highly intuitive. Here is a simple breakdown of how data flows through the architecture:
 
-* [Installation & Usage](#installation--usage)
+### 1. Capturing Dynamics
+![Group vs Person Dynamics](images/fig2.png)[cite: 2]
+*Figure 2: We separate the problem into two distinct parts—understanding individual person dynamics (like a player setting or standing) and understanding the overarching group dynamics.*[cite: 2]
 
-* [Citation](#citation)
+### 2. The Detailed Pipeline
+![Detailed Model Pipeline](images/fig3.png)[cite: 3]
+*Figure 3: The step-by-step process. First, we feed individual player tracklets into a Convolutional Neural Network (CNN), followed by a Person-level LSTM (LSTM 1) to understand what each player is doing. We then pool everyone's features together and feed them into a second Group-level LSTM (LSTM 2) to classify the final team activity (e.g., identifying a "Right Set").*[cite: 3]
 
-## 🚀 Abstract & Key Updates
+### 3. Adding Spatial Awareness
+![Spatial Pooling](images/fig4.png)[cite: 4]
+*Figure 4: Where players are located on the court matters! While basic models drop spatial information, our updated model uses a 2-group pooling strategy to capture the spatial arrangements and formations of the players.*[cite: 4]
 
-**Abstract:** In group activity recognition, the temporal dynamics of the whole activity can be inferred based on the dynamics of the individual people representing the activity. We present a 2-stage deep temporal model where an initial sequence model (e.g., LSTM/GRU) is designed to represent action dynamics of individual people, and a secondary sequence model aggregates this person-level information for comprehensive scene-level activity understanding.
+---
 
-**Key Updates in this Implementation:**
+## 🏐 The Expanded Volleyball Dataset
 
-* **Modern Backbones:** Replaced the original AlexNet with **ResNet-50** and **ResNet-34** for superior feature extraction.
+To train and evaluate our model, we collected a massive new **Volleyball Dataset** using publicly available YouTube videos. This expanded version is **3 times larger** than our original CVPR submission!
 
-* **End-to-End Training:** Implemented a unified end-to-end version (Baseline 9) using GRUs instead of LSTMs to reduce complexity and mitigate overfitting.
+* **Total Videos:** 55 videos (8 videos are 1920x1080 resolution, the rest are 1280x720).
+* **Total Frames:** 4,830 handpicked annotated frames (3,493 for training, 1,337 for testing).
+* **Train/Test Split:** Performed strictly at the *video level* (not frame level) to ensure the model's evaluation is convincing and prevents data leakage.
+    * **Train Videos:** 1, 3, 6, 7, 10, 13, 15, 16, 18, 22, 23, 31, 32, 36, 38, 39, 40, 41, 42, 48, 50, 52, 53, 54
+    * **Validation Videos:** 0, 2, 8, 12, 17, 19, 24, 26, 27, 28, 30, 33, 46, 49, 51
+    * **Test Videos:** 4, 5, 9, 11, 14, 20, 21, 25, 29, 34, 35, 37, 43, 44, 45, 47
 
-* **Higher Performance:** Achieved higher accuracy and F1 scores across *every* model baseline compared to the original paper.
+### 🏷️ Labels & Classes
+We labeled the data at both the team and individual levels:
+* **8 Group Activity Classes:** Right set (644), Right spike (623), Right pass (801), Right winpoint (295), Left winpoint (367), Left pass (826), Left spike (642), Left set (633).
+* **9 Individual Action Classes:** Waiting (3601), Setting (1332), Digging (2333), Falling (1241), Spiking (1216), Blocking (2458), Jumping (341), Moving (5121), Standing (38696).
 
-* **Modern Framework:** Full implementation in Python/PyTorch (original was in Caffe).
+### 📁 Directory Structure & Format
+* The dataset is organized into folders by unique Video IDs (`0` to `54`).
+* Inside each video directory, frames are grouped by the target frame ID (e.g., `volleyball/39/29885`).
+* Because scenes change rapidly in volleyball, each frame directory contains a tight window of **41 images** (20 images before the target frame, the target frame itself, and 20 after). *Note: In our work, we specifically used 5 frames before and 4 frames after.*
+* **Annotations:** Stored in an `annotations.txt` file per video. 
+    * Format: `{Frame ID} {Frame Activity Class} {Player Annotation 1} {Player Annotation 2} ...`
+    * Player Annotation Format: `{Action Class} X Y W H` (tight bounding box).
 
-* **Extensive Ablation Studies:** Detailed analysis of model components to understand the effect of spatial pooling and temporal modeling.
+### 🔗 Downloads & Updates
+* **[Main Dataset Download Link](https://drive.google.com/drive/folders/1rmsrG1mgkwxOKhsr-QYoi9Ss92wQmCOS)** *(Combined Google Drive folder).*
+* **Update 1 (Trajectories):** Extracted player trajectories (generated via Dlib Tracker) are now available to save you processing time.
+* **Update 2 (Detectors):** Two Faster-RCNN detectors trained by Jiawei (Eric) He for person and action detection are provided to help speed up custom pipelines. 
+* **Update 3 (Manual Annotations):** Manual trajectory annotations kindly provided by Norimichi Ukita. *(Please cite Sendo & Ukita, MVA 2019 if used).*
+* **Update 4 (Ball Locations):** Manual ball location annotations provided by Mauricio Perez. *(Please cite their Skeleton-based relational reasoning paper if used).*
 
-## 📊 Dataset Overview
+---
 
-We utilize the expanded **Volleyball Dataset**, collected from publicly available YouTube videos. The dataset contains **4,830 frames** handpicked from **55 videos**, featuring 2 levels of annotation: **9 player action labels** and **8 team activity labels**.
+## 📊 Results & Performance
 
-### Annotations Visualized
+Our Two-stage Hierarchical Model was rigorously tested and significantly outperforms standard baselines.
 
+![Performance Table](images/table1.png)[cite: 5]
+*Table 1: A comparison of team activity recognition performance on the Volleyball Dataset. Our Two-stage Hierarchical Model achieves a leading accuracy of **81.9%**, successfully outperforming basic image/person classification methods and Improved Dense Trajectories (IDTF) approaches.*[cite: 5]
 
-*Figure: A frame labeled as "Left Spike" with bounding boxes around players demonstrating team activity annotations.*
-
-
-*Figure: For each visible player, an individual action label is annotated (e.g., Spiking, Blocking, Standing).*
-
-### Dataset Statistics
-
-**Train-Test Split:**
-
-* **Training Set:** 3,493 frames (Train Videos: 1, 3, 6, 7, 10, 13, 15, 16, 18, 22, 23, 31, 32, 36, 38, 39, 40, 41, 42, 48, 50, 52, 53, 54)
-
-* **Testing Set:** 1,337 frames (Test/Val Videos: 0, 2, 4, 5, 8, 9, 11, 12, 14, 17, 19, 20, 21, 24-30, 33-35, 37, 43-47, 49, 51)
-
-* *Note: The train-test split is performed at the video level to ensure convincing model evaluation.*
-
-| Group Activity Class | Instances |  | Player Action Class | Instances | 
-| ----- | ----- | ----- | ----- | ----- | 
-| Right set | 644 |  | Waiting | 3,601 | 
-| Right spike | 623 |  | Setting | 1,332 | 
-| Right pass | 801 |  | Digging | 2,333 | 
-| Right winpoint | 295 |  | Falling | 1,241 | 
-| Left winpoint | 367 |  | Spiking | 1,216 | 
-| Left pass | 826 |  | Blocking | 2,458 | 
-| Left spike | 642 |  | Jumping | 341 | 
-| Left set | 633 |  | Moving | 5,121 | 
-|  |  |  | Standing | 38,696 | 
-
-## 🧠 Model Architecture
-
-The core of this project is a Hierarchical Deep Temporal Model.
-
-
-*Figure: Given tracklets of K-players, we feed each tracklet into a CNN, followed by a person-level LSTM to represent individual actions. Features are then pooled and fed into a secondary team-level LSTM to identify the whole team's activity.*
-
-### 1. Player Activity Temporal Classifier
-
-* **Spatial Backbone:** A pretrained ResNet-50/ResNet-34 extracts spatial features from image crops of individual players.
-
-* **Temporal Modeling:** An LSTM/GRU processes the sequence of features (tracklets) across multiple frames to capture individual player dynamics.
-
-### 2. Group Activity Temporal Classifier (Team Pooling)
-
-* **Spatial Pooling:** Instead of pooling all people blindly, players are grouped into two teams (e.g., players 1–6 for Team 1, players 7–12 for Team 2).
-
-* **Hierarchical Integration:** Adaptive max-pooling aggregates features within each team independently. Features from both teams are then concatenated.
-
-* **Scene Level Modeling:** A second sequence model (LSTM/GRU) processes these concatenated team features over time to classify the final group activity.
-
-
-*Figure: Previous basic models dropped spatial information. In our updated model (Baseline 8/9), 2-group pooling captures the spatial arrangements of opposing teams.*
-
-## 🔬 Ablation Study & Baselines
-
-To thoroughly assess the impact of various components (feature extraction, temporal modeling, pooling strategies), we conducted extensive experimentation by systematically adding or removing features.
-
-* **Baseline B1 (Image Classification):** A simple baseline. Fine-tunes a ResNet-50 image classifier over the 8 scene classes using only a single frame (the middle frame) from a video clip. No temporal information.
-
-* **Baseline B3 (Fine-tuned Person Classification):**
-
-  * **Train:** Fine-tune a classifier over 9 actions using cropped persons.
-
-  * **Inference:** Extract 2048 features per person crop, max pool all features to create an image representation, and train a Neural Network over the 8 group classes.
-
-* **Baseline B4 (Temporal Model with Image Features):** Uses the B1 classifier to extract sequence representations for clips (9 frames per clip). Trains an LSTM on these sequences without explicit individual feature extraction.
-
-* **Baseline B5 (Temporal on Crops - LSTM on Player Level):** Extracts features per person temporally (LSTM on player level). The last hidden states represent each player. These are max-pooled for all 12 players, followed by a standard NN classifier for the scene (no scene-level temporal info).
-
-* **Baseline B6 (Two-stage Model without LSTM 1):** Similar to B3, but applies an LSTM at the image/scene level to sequences of individual pooled features.
-
-* **Baseline B7 (Two-stage Model without LSTM 2 - Full Model V1):** Trains an LSTM on crop-level data (9 steps per player). A single max-pooling operation is applied to all players in the frame, and a second LSTM (LSTM 2) is trained on the frame level.
-
-* **Baseline B8 (Two-stage Hierarchical Model with Team Pooling):** Same as B7, but the scene representation is **not** a blind pool of all players. It pools Team 1 (6 players) and Team 2 (6 players) independently, then concatenates them. This preserves crucial spatial arrangements.
-
-* **Baseline B9 (Unified Hierarchical End-to-End Model):** Integrates person-level and group-level losses into a single, unified end-to-end training pipeline with shared gradient flow. Uses **ResNet-34** and **GRU** to reduce complexity and overfitting.
-
-## 📈 Performance & Results
-
-Our modern implementation outperforms the original CVPR 2016 baselines significantly.
-
-### My Scores (Accuracy and F1 Scores)
-
-| Baseline Model | Accuracy | F1 Score | 
-| ----- | ----- | ----- | 
-| **Baseline 1** | 72.66% | 72.63% | 
-| **Baseline 3** | 80.25% | 80.24% | 
-| **Baseline 4** | 76.59% | 76.67% | 
-| **Baseline 5** | 77.04% | 77.07% | 
-| **Baseline 6** | 84.52% | 83.99% | 
-| **Baseline 7** | 89.15% | 89.14% | 
-| **Baseline 8** | 92.30% | 92.29% | 
-| **Baseline 9 (End-to-End)** | **93.12%** | **93.11%** | 
-
-*(For comparison, the original paper's top model achieved an accuracy of around 81.9% on the validation set).*
-
-## 💡 Interesting Observations
-
-**The Effect of Team Independent Pooling**
-
-A key discovery in our ablation study was observed when transitioning from the individual level to the frame level.
-
-In Baselines 5 and 6, when all 12 players from both teams were pooled together into a single representation, the model lost valuable geometric and spatial information. This resulted in frequent confusion between mirrored actions, such as:
-
-* Right winpoint vs. Left winpoint
-
-* Right pass vs. Left pass
-
-* Right set vs. Left set
-
-When teams are grouped and processed individually before concatenation (as introduced in **Baseline 8** and perfected in **Baseline 9**), the player position information is retained. This careful handling of spatial arrangements drastically reduces confusion and boosts model accuracy to >92%.
+---
+*Note: The first version of this work was accepted at CVPR 2016. The provided dataset is the expanded version. Please use and compare against this version.*
