@@ -22,15 +22,15 @@ This project solves the problem of **Group Activity Recognition** by building a 
 Our model is designed to be highly intuitive. Here is a simple breakdown of how data flows through the architecture:
 
 ### 1. Capturing Dynamics
-![Group vs Person Dynamics](images/fig2.png)[cite: 2]
+![Group vs Person Dynamics](images/fig2.png)
 *Figure 2: We separate the problem into two distinct parts—understanding individual person dynamics (like a player setting or standing) and understanding the overarching group dynamics.*[cite: 2]
 
 ### 2. The Detailed Pipeline
-![Detailed Model Pipeline](images/fig3.png)[cite: 3]
-*Figure 3: The step-by-step process. First, we feed individual player tracklets into a Convolutional Neural Network (CNN), followed by a Person-level LSTM (LSTM 1) to understand what each player is doing. We then pool everyone's features together and feed them into a second Group-level LSTM (LSTM 2) to classify the final team activity (e.g., identifying a "Right Set").*[cite: 3]
+![Detailed Model Pipeline](images/fig3.png)
+*Figure 3: The step-by-step process. First, we feed individual player tracklets into a Convolutional Neural Network (CNN), followed by a Person-level LSTM (LSTM 1) to understand what each player is doing. We then pool everyone's features together and feed them into a second Group-level LSTM (LSTM 2) to classify the final team activity (e.g., identifying a "Right Set").*
 
 ### 3. Adding Spatial Awareness
-![Spatial Pooling](images/fig4.png)[cite: 4]
+![Spatial Pooling](images/fig4.png)
 *Figure 4: Where players are located on the court matters! While basic models drop spatial information, our updated model uses a 2-group pooling strategy to capture the spatial arrangements and formations of the players.*
 
 ---
@@ -72,7 +72,7 @@ We labeled the data at both the team and individual levels:
 
 Our Two-stage Hierarchical Model was rigorously tested and significantly outperforms standard baselines.
 
-![Performance Table](images/table1.png)[cite: 5]
+![Performance Table](images/table1.png)
 *Table 1: A comparison of team activity recognition performance on the Volleyball Dataset. Our Two-stage Hierarchical Model achieves a leading accuracy of **81.9%**, successfully outperforming basic image/person classification methods and Improved Dense Trajectories (IDTF) approaches.*[cite: 5]
 
 ---
