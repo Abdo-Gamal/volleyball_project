@@ -12,7 +12,7 @@ This project solves the problem of **Group Activity Recognition** by building a 
 1. **Stage 1 (Person-Level):** An LSTM model is designed to represent the dynamic actions of individual people in a sequence.
 2. **Stage 2 (Group-Level):** A second LSTM model aggregates this individual person-level information to understand the entire scene's activity.
 
-<img src="images/fig1.png" alt="High-level hierarchical model" width="800">
+<img src="images/fig1.png" alt="High-level hierarchical model" width="600">
 *Figure 1: A high-level look at our hierarchical model. Each person's movement is tracked individually to capture their dynamics, and these models are then integrated into a higher-level network to recognize the full scene's activity.*
 
 ---
@@ -22,15 +22,15 @@ This project solves the problem of **Group Activity Recognition** by building a 
 Our model is designed to be highly intuitive. Here is a simple breakdown of how data flows through the architecture:
 
 ### 1. Capturing Dynamics
-<img src="images/fig2.png" alt="Group vs Person Dynamics" width="800">
+<img src="images/fig2.png" alt="Group vs Person Dynamics" width="600">
 *Figure 2: We separate the problem into two distinct parts—understanding individual person dynamics (like a player setting or standing) and understanding the overarching group dynamics.*
 
 ### 2. The Detailed Pipeline
-<img src="images/fig3.png" alt="Detailed Model Pipeline" width="800">
+<img src="images/fig3.png" alt="Detailed Model Pipeline" width="600">
 *Figure 3: The step-by-step process. First, we feed individual player tracklets into a Convolutional Neural Network (CNN), followed by a Person-level LSTM (LSTM 1) to understand what each player is doing. We then pool everyone's features together and feed them into a second Group-level LSTM (LSTM 2) to classify the final team activity (e.g., identifying a "Right Set").*
 
 ### 3. Adding Spatial Awareness
-<img src="images/fig4.png" alt="Spatial Pooling" width="800">
+<img src="images/fig4.png" alt="Spatial Pooling" width="600">
 *Figure 4: Where players are located on the court matters! While basic models drop spatial information, our updated model uses a 2-group pooling strategy to capture the spatial arrangements and formations of the players.*
 
 ---
