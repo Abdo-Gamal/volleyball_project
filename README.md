@@ -1,5 +1,3 @@
-Markdown
-
 A Hierarchical Deep Temporal Model for Group Activity RecognitionAn end-to-end PyTorch implementation and modern extension of the CVPR 2016 paper by Mostafa S. Ibrahim, Srikanth Muralidharan, Zhiwei Deng, Arash Vahdat, and Greg Mori.
 
 ---## 📖 Introduction & Problem Overview
