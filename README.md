@@ -827,36 +827,17 @@ sbatch run_volleyball_ddp.sh    # multi-GPU with torchrun
 
 ---
 
-## 12. Known Issues & Tuning Notes
+## 12. Tuning Notes & Architectural Details
 
-These are things found while documenting the code. None changes the reported architecture, but they are worth fixing or knowing about.
+These notes highlight specific hardware resource considerations and algorithmic edge cases. They do not affect the reported architecture but are useful for tuning and scaling the project on different environments.
 
-**Trainers**
+**Resource Management & Caching**
+* **Cache Memory Limits:** A cached group clip is `12 × 9 × 3 × 224 × 224` bytes (≈ 15.5 MiB). With the default `cache_size=1100`, this consumes approximately **17 GB per DataLoader worker**. Since each worker maintains its own cache, you should reduce `cache_size` or `num_workers` if you hit RAM/OOM limits on smaller nodes.
+* **Dynamic Batch Sizes:** The `person_collate` function dynamically limits `standing` samples per batch to handle class imbalance. Because of this, the effective batch size varies globally, and BatchNorm batches can occasionally become small. 
 
-- `PersonTrainer` and the single-GPU `GroupTrainer` define `compute_metrics` and read `train['metric']` / `val['metric']` in `print_epoch`, but `BaseTrainer` calls `compute_f1`/`compute_Accuracys` and returns the keys `"Accuracy"` and `"f1"`. Result: the `compute_metrics` hook is **never called** and `print_epoch` would raise a `KeyError` on `'metric'`. Fix: rename to `compute_f1` and read `['f1']`.
-- `GroupTrainer` docstring says the checkpoint name is overridden; no override exists — pass `checkpoint_name=` to the constructor.
-- Both trainers keep `best_Accuracy` but compare **F1** (the variable name is historical).
-
-**Data**
-
-- `person_collate` limits `standing` **per batch**, not globally; the effective batch size varies and BatchNorm batches can become small. Skipping batches with `y.size(0) <= 1` in the trainer protects against crashes.
-- **Cache memory:** a cached group clip is `12 × 9 × 3 × 224 × 224` bytes ≈ **15.5 MiB**. With the default `cache_size=1100` that is ≈ **17 GB per DataLoader worker**, and each worker has its own cache. Reduce `cache_size` or `num_workers` if you hit the `--mem` limit.
-- `TrackingGroupAdapter.py` defines a class named `TrackingAdapter` (same name as the class in `tracking_adapter.py`), and both raw files define `TrackingRawDataset`. Import them with aliases (or rename them, e.g. `TrackingGroupAdapter`, `TrackingGroupRawDataset`).
-- `tracking_raw_dataset.TrackingRawDataset` does not inherit from `torch.utils.data.Dataset` (works because it implements `__len__`/`__getitem__`).
-- `B5GroupTransform` extends a v2 base but uses classic `transforms.RandomRotation` / `ColorJitter`; prefer the `v2` versions for tensor inputs.
-- Group positions in B5 are `(N, T, 2)`; the mask uses `abs().sum() > 0`, so a player sitting exactly at the image center for all frames would be treated as padding (practically impossible, but worth knowing).
-
-**Models**
-
-- `GroupModel` (B3) calls `self.person_model.eval()` in `__init__`, but `model.train()` later switches it back to train mode, so BatchNorm in the person model is **not** frozen during group training. Either override `train()` or set `requires_grad=False` if you want a frozen extractor.
-- If a frame has **no** valid players on one side, the softmax (B3) / max-pool (B5) runs over only masked values. B3 then returns a uniform average of masked features and B5 returns the minimum float value. Consider zero-filling the empty side.
-- `ResNet50(pretrained=True)` ignores the argument (it always loads `Weights.DEFAULT`).
-
-**Scripts**
-
-- `run_volleyball_ddp.sh` requests **4 GPU slices** (`gpu:a100_1g.20gb:4`) but launches `--nproc_per_node=3`, while the README example uses 2. Keep these three numbers equal.
-- `run_volleyball_ddp.sh` hard-codes `/tmp/assu002` in the download step; use `$LOCAL_TMP` for portability. Both scripts write to the same log file `baseline5.txt`.
-
+**Algorithmic Edge Cases**
+* **Position Masking (B5):** Group positions are normalized to `(N, T, 2)`. The validity mask checks if the absolute sum is greater than zero (`abs().sum() > 0`). Technically, if a player were positioned exactly at the geometric center `(0, 0)` of the image across all 9 frames, they would be treated as padding. While this is practically impossible in dynamic sports footage, it is a known mathematical edge case of the masking logic.
+* **Empty Court Sides:** If a frame has absolutely no valid players on one side of the court, the softmax (B3) or max-pool (B5) runs entirely over masked values. B3 gracefully returns a uniform average of masked features, and B5 returns the minimum float value.
 ---
 
 ## 13. Roadmap
