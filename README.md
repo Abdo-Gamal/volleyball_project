@@ -252,6 +252,7 @@ flowchart LR
     D --> E["DataLoader + collate_fn<br/>batching / padding"]
     E --> F["Model"]
 
+```
 ### 5.1 Raw Datasets — *"what is in the files?"*
 
 Raw datasets only **parse text and build file paths**. They never open images and never produce tensors.
