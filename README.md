@@ -246,12 +246,11 @@ The data side is split into **four independent layers**. Each layer has one job,
 
 ```mermaid
 flowchart LR
-    A[Annotation files + JPG frames] --> B[Raw Dataset<br/>parse text, build paths]
-    B --> C[Adapter<br/>crop / cache / stack]
-    C --> D[Transform<br/>augment + normalize]
-    D --> E[DataLoader + collate_fn<br/>batching / padding]
-    E --> F[Model]
-```
+    A["Annotation files + JPG frames"] --> B["Raw Dataset<br/>parse text, build paths"]
+    B --> C["Adapter<br/>crop / cache / stack"]
+    C --> D["Transform<br/>augment + normalize"]
+    D --> E["DataLoader + collate_fn<br/>batching / padding"]
+    E --> F["Model"]
 
 ### 5.1 Raw Datasets — *"what is in the files?"*
 
