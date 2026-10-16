@@ -8,7 +8,7 @@ class MultiTaskLoss(nn.Module):
     def __init__(self, coarse_weight=0.05, gamma=0.0):
         super().__init__()
         self.motion_loss = nn.CrossEntropyLoss()
-        self.action_loss = FocalLoss(gamma)
+        self.action_loss = FocalLoss(gamma=gamma)
         self.coarse_weight = coarse_weight
 
     def forward(self, outputs, labels):

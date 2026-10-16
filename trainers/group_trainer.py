@@ -54,8 +54,8 @@ class GroupTrainer(BaseTrainer):
         train_acc = self.accuracy(train["targets"], train["preds"])
         val_acc   = self.accuracy(val["targets"],   val["preds"])
         print(f"\nEpoch [{epoch}] | lr: {lr:.7f}")
-        print(f"TRAIN → loss: {train['loss']:.3f} | acc: {train_acc:.3f} | F1: {train['metric']:.3f}")
-        print(f"VAL   → loss: {val['loss']:.3f}   | acc: {val_acc:.3f}   | F1: {val['metric']:.3f}")
+        print(f"TRAIN → loss: {train['loss']:.3f} | acc: {train_acc:.3f} | F1: {train['f1']:.3f}")
+        print(f"VAL   → loss: {val['loss']:.3f}   | acc: {val_acc:.3f}   | F1: {val['f1']:.3f}")
 
 
 

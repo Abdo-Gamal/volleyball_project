@@ -65,7 +65,7 @@ ls -lh "$DATA_DIR"
 cd /nfs/slurm/$USER/projects/volleyball_project
 
 echo "=== Starting Training ==="
-python3 -u runs/baseline5/Run_GroupBaseline5_ddp.py
+python3 -u runs/baseline3/Run_Baseline3_person_model.py
 
 echo " DONE: $(date)"
 echo "========================================"

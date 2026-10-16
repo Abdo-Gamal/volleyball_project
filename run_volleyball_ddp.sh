@@ -4,7 +4,7 @@
 #SBATCH --time=5:00:00
 #SBATCH --mem-per-cpu=64G
 #SBATCH --cpus-per-gpu=2
-#SBATCH --gres=gpu:a100_1g.20gb:4
+#SBATCH --gres=gpu:a100_1g.20gb:2
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --nodelist=gpu1
@@ -80,11 +80,11 @@ cd /nfs/slurm/$USER/projects/volleyball_project
 echo "=== Starting Training ==="
 
 # [CHANGED 3] --standalone = "everything is on this one node": no rendezvous address, no port to pick
-torchrun --standalone --nproc_per_node=3 /nfs/slurm/assu002/projects/volleyball_project/runs/baseline5/Run_GroupBaseline5_ddp.py
+torchrun --standalone --nproc_per_node=2 /nfs/slurm/assu002/projects/volleyball_project/runs/baseline3/Run_Baseline3_person_model_ddp.py
 
 echo ""
 echo "=== Saved outputs ==="
-ls -lh /nfs/slurm/$USER/projects/volleyball_project/outputs/baseline5
+ls -lh /nfs/slurm/$USER/projects/volleyball_project/outputs/baseline3
 
 echo " DONE: $(date)"
 echo "========================================"

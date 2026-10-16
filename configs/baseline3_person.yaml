@@ -6,7 +6,7 @@ experiment:
   name: baseline3_resnet50
 
 train:
-  batch_size: 32
+  batch_size: 16
   epochs: 20
   lr: .0004
   weight_decay: .02

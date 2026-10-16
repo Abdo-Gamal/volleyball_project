@@ -192,7 +192,8 @@ trainer = PersonTrainer(
     epochs=epochs, 
     output_dir=output_dir,
     class_map=PERSON_ACTION_TO_IDX,
-    print_perclass=print_perclass,            # was: print_evl_perclass=True
+    print_perclass=print_perclass,   
+    checkpoint_name="PersonModel_best.pth" ,        # was: print_evl_perclass=True
 )
 trainer.train()  
 

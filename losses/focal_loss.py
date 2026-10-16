@@ -37,6 +37,7 @@ class FocalLoss(nn.Module):
         loss = ((1 - pt) ** self.gamma * ce)
         
         if self.alpha is not None:
+              
             self.alpha = self.alpha.to(targets.device)
             alpha_t = self.alpha[targets]
             loss = loss * alpha_t

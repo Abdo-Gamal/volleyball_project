@@ -20,8 +20,3 @@ dataloader:
   num_workers: 4
   pre_fetch_factor: 2
 
-
-
-
-
-
