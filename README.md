@@ -44,17 +44,17 @@ This repository implements a **progressive benchmark**. It starts from a single-
 
 ```mermaid
 flowchart LR
-    B1["<b>B1</b><br/>Whole frame<br/>CNN"]
-    B3["<b>B3</b><br/>+ Players<br/>+ Positions<br/>+ Attention"]
-    B4["<b>B4</b><br/>+ Time on the<br/>whole scene<br/>(BiLSTM)"]
-    B5["<b>B5</b><br/>+ Player tracklets<br/>(BiLSTM per player)<br/>+ Court-side max-pool"]
-    B6["<b>B6</b><br/>+ Per-frame person<br/>pooling<br/>+ Group BiLSTM"]
+    B1["B1<br/>Whole frame<br/>CNN"]
+    B3["B3<br/>+ Players<br/>+ Positions<br/>+ Attention"]
+    B4["B4<br/>+ Time on the<br/>whole scene<br/>(BiLSTM)"]
+    B5["B5<br/>+ Player tracklets<br/>(BiLSTM per player)<br/>+ Court-side max-pool"]
+    B6["B6<br/>+ Per-frame person<br/>pooling<br/>+ Group BiLSTM"]
     B1 -->|add persons| B3
     B1 -->|add time| B4
     B3 -->|add time| B5
     B4 -->|add persons| B5
-    B3 -->|reuse PersonModel,<br/>add time at group level| B6
-    B5 -.->|compare: time at<br/>person vs group level| B6
+    B3 -->|"reuse PersonModel, add time at group level"| B6
+    B5 -.->|"compare: time at person vs group level"| B6
     style B6 fill:#16a34a,color:#fff
 ```
 
@@ -451,7 +451,7 @@ ResNet50(pretrained=True)   # ImageNet weights, final FC removed
 
 ```mermaid
 flowchart LR
-    A[Frame 224×224] --> B[ResNet-50] --> C[2048-d] --> D[Dropout 0.5] --> E[Linear → 8 classes]
+    A["Frame 224×224"] --> B["ResNet-50"] --> C["2048-d"] --> D["Dropout 0.5"] --> E["Linear → 8 classes"]
 ```
 
 | Item | Value |
@@ -491,8 +491,8 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    A[Person crop] --> B[ResNet-50<br/>2048] --> C[Linear 2048→512<br/>BN + ReLU + Dropout] --> D[coarse head → 3]
-    C --> E[action head → 9]
+    A["Person crop"] --> B["ResNet-50<br/>2048"] --> C["Linear 2048→512<br/>BN + ReLU + Dropout"] --> D["coarse head → 3"]
+    C --> E["action head → 9"]
 ```
 
 - **Two heads on a shared 512-d feature:**
@@ -506,13 +506,13 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    A["Persons (B,N,3,224,224)"] --> B[PersonModel return_feat → 512-d]
-    P["Positions (B,N,2)"] --> C[concat → Linear 514→512 + LayerNorm + ReLU]
+    A["Persons (B,N,3,224,224)"] --> B["PersonModel return_feat → 512-d"]
+    P["Positions (B,N,2)"] --> C["concat → Linear 514→512 + LayerNorm + ReLU"]
     B --> C
-    C --> D[Attention MLP → 1 score per player]
-    D --> L[Masked softmax over LEFT players] --> LV[left_vec]
-    D --> R[Masked softmax over RIGHT players] --> RV[right_vec]
-    LV --> G[concat 1024] --> H[Linear 1024→256 → ReLU → Dropout → Linear 256→8]
+    C --> D["Attention MLP → 1 score per player"]
+    D --> L["Masked softmax over LEFT players"] --> LV["left_vec"]
+    D --> R["Masked softmax over RIGHT players"] --> RV["right_vec"]
+    LV --> G["concat 1024"] --> H["Linear 1024→256 → ReLU → Dropout → Linear 256→8"]
     RV --> G
 ```
 
@@ -541,7 +541,7 @@ Step by step:
 
 ```mermaid
 flowchart LR
-    S1["Stage 1<br/>train PersonModel<br/>(person crops → 9 actions)"] -->|save weights| W[("person_model.pt")]
+    S1["Stage 1<br/>train PersonModel<br/>(person crops → 9 actions)"] -->|save weights| W["('person_model.pt')"]
     W -->|load + reuse| S2["Stage 2<br/>train GroupModel<br/>(frames → 8 group classes)"]
 ```
 
@@ -553,9 +553,9 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    A["(B,T=9,3,224,224)"] --> B["reshape (B·T,3,224,224)"] --> C[ResNet-50 → 2048]
-    C --> D[Linear 2048→512 + BN + ReLU + Dropout] --> E["reshape (B,T,512) + LayerNorm"]
-    E --> F[BiLSTM 512] --> G["concat h_n forward ‖ backward → 1024"] --> H[Dropout → Linear → 8]
+    A["(B,T=9,3,224,224)"] --> B["reshape (B·T,3,224,224)"] --> C["ResNet-50 → 2048"]
+    C --> D["Linear 2048→512 + BN + ReLU + Dropout"] --> E["reshape (B,T,512) + LayerNorm"]
+    E --> F["BiLSTM 512"] --> G["concat h_n forward ‖ backward → 1024"] --> H["Dropout → Linear → 8"]
 ```
 
 **Shape flow**
@@ -608,16 +608,16 @@ flowchart TD
     A["persons (B,N=12,T=9,3,224,224)"] --> B["view (B·N,T,3,224,224)"]
     B --> C["Backbone = B5Model with classifier = Identity<br/>(ResNet-50 → BiLSTM) → (B·N, 1024)"]
     C --> D["view (B,N,1024)"]
-    P["positions (B,N,T,2)"] --> M["mean_x over T → (B,N)<br/>valid_mask = |pos| sum > 0"]
-    M --> LM[left_mask: mean_x < 0 & valid]
-    M --> RM[right_mask: mean_x ≥ 0 & valid]
-    D --> LP[masked max-pool over N → left 1024]
-    D --> RP[masked max-pool over N → right 1024]
+    P["positions (B,N,T,2)"] --> M["mean_x over T → (B,N)<br/>valid_mask = |pos| sum above 0"]
+    M --> LM["left_mask: mean_x below 0 and valid"]
+    M --> RM["right_mask: mean_x at least 0 and valid"]
+    D --> LP["masked max-pool over N → left 1024"]
+    D --> RP["masked max-pool over N → right 1024"]
     LM --> LP
     RM --> RP
-    LP --> G[concat → 2048]
+    LP --> G["concat → 2048"]
     RP --> G
-    G --> H[Dropout → Linear 2048→256 → ReLU → Dropout → Linear 256→8]
+    G --> H["Dropout → Linear 2048→256 → ReLU → Dropout → Linear 256→8"]
 ```
 
 Step by step:
@@ -661,8 +661,8 @@ flowchart TD
     F1 --> BB["Backbone = PersonModel<br/>forward(x, return_feat=True)<br/>→ (B·N·T, 512)"]
     BB --> F2["view (B, N, T, 512)"]
 
-    P["positions<br/>(B, N, T, 2)"] --> MX["mean_x = pos[...,0].mean over T<br/>→ (B, N)"]
-    P --> VM["valid_mask = |pos| summed over T,2 > 0<br/>→ (B, N)"]
+    P["positions<br/>(B, N, T, 2)"] --> MX["mean_x = mean of x coordinate over T<br/>→ (B, N)"]
+    P --> VM["valid_mask = abs(pos) summed over T and 2 is above 0<br/>→ (B, N)"]
     MX --> LM["left_mask = mean_x below 0 AND valid"]
     MX --> RM["right_mask = mean_x at least 0 AND valid"]
     VM --> LM
@@ -677,7 +677,7 @@ flowchart TD
     LPOOL --> CAT["concat<br/>→ (B, T, 1024)"]
     RPOOL --> CAT
     CAT --> LSTM["BiLSTM(1024 → 512, bidirectional)<br/>over the T=9 steps"]
-    LSTM --> H["h_n[-2] ‖ h_n[-1]<br/>→ (B, 1024)"]
+    LSTM --> H["last forward hidden ‖ last backward hidden<br/>→ (B, 1024)"]
     H --> CLS["Dropout → Linear 1024→256 → ReLU → Dropout → Linear 256→8"]
     CLS --> OUT["group logits (B, 8)"]
     style LSTM fill:#8b5cf6,color:#fff
@@ -730,7 +730,7 @@ sequenceDiagram
     M->>M: build valid / left / right masks from positions
     M->>M: masked max-pool over players, per frame, per team
     M->>L: sequence (B, 9, 1024)
-    L-->>M: h_n forward & backward → (B, 1024)
+    L-->>M: h_n forward and backward → (B, 1024)
     M->>C: final_feat
     C-->>M: logits (B, 8)
 ```
