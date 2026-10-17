@@ -682,7 +682,7 @@ flowchart TD
     CLS --> OUT["group logits (B, 8)"]
     style LSTM fill:#8b5cf6,color:#fff
     style OUT fill:#16a34a,color:#fff
-    
+
 ```
 
 #### 6.5.3 Step-by-Step Logic
@@ -768,6 +768,7 @@ sequenceDiagram
 | Weakness | no group-level dynamics | the max-pool can hide which player did what before time is modeled |
 
 ```mermaid
+
 flowchart LR
     subgraph B5["B5: LSTM then pool"]
         direction TB
@@ -777,6 +778,7 @@ flowchart LR
         direction TB
         q1["players × frames"] --> q2["CNN"] --> q3["max-pool per side, per frame"] --> q4["BiLSTM on the group"] --> q5["classifier"]
     end
+
 ```
 
 #### 6.5.8 Design Notes & Caveats
