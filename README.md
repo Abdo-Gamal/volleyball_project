@@ -682,6 +682,7 @@ flowchart TD
     CLS --> OUT["group logits (B, 8)"]
     style LSTM fill:#8b5cf6,color:#fff
     style OUT fill:#16a34a,color:#fff
+    
 ```
 
 #### 6.5.3 Step-by-Step Logic
