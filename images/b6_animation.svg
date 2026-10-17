@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 430" width="900" height="430" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="900" height="430" rx="12" fill="#0f172a"/>
+  <text x="450" y="30" text-anchor="middle" fill="#f8fafc" font-size="18" font-weight="bold">Baseline 6: per-frame court-side pooling, then a group BiLSTM over time</text>
+
+  <!-- time axis labels -->
+  <g fill="#94a3b8" font-size="11" text-anchor="middle">
+    <text x="145" y="62">t-4</text><text x="215" y="62">t-3</text><text x="285" y="62">t-2</text>
+    <text x="355" y="62">t-1</text><text x="425" y="62" fill="#fde047" font-weight="bold">t</text>
+    <text x="495" y="62">t+1</text><text x="565" y="62">t+2</text><text x="635" y="62">t+3</text><text x="705" y="62">t+4</text>
+  </g>
+
+  <!-- row labels -->
+  <g font-size="12" fill="#cbd5e1">
+    <text x="12" y="92">Left players</text>
+    <text x="12" y="152">Right players</text>
+    <text x="12" y="232">Max-pool L</text>
+    <text x="12" y="262">Max-pool R</text>
+    <text x="12" y="322">BiLSTM over T</text>
+  </g>
+
+  <!-- player crops: 2 left (blue), 2 right (orange), per frame -->
+  <g fill="#3b82f6">
+    <rect x="120" y="75" width="50" height="22" rx="4"/><rect x="190" y="75" width="50" height="22" rx="4"/><rect x="260" y="75" width="50" height="22" rx="4"/><rect x="330" y="75" width="50" height="22" rx="4"/><rect x="400" y="75" width="50" height="22" rx="4"/><rect x="470" y="75" width="50" height="22" rx="4"/><rect x="540" y="75" width="50" height="22" rx="4"/><rect x="610" y="75" width="50" height="22" rx="4"/><rect x="680" y="75" width="50" height="22" rx="4"/>
+    <rect x="120" y="103" width="50" height="22" rx="4"/><rect x="190" y="103" width="50" height="22" rx="4"/><rect x="260" y="103" width="50" height="22" rx="4"/><rect x="330" y="103" width="50" height="22" rx="4"/><rect x="400" y="103" width="50" height="22" rx="4"/><rect x="470" y="103" width="50" height="22" rx="4"/><rect x="540" y="103" width="50" height="22" rx="4"/><rect x="610" y="103" width="50" height="22" rx="4"/><rect x="680" y="103" width="50" height="22" rx="4"/>
+  </g>
+  <g fill="#f97316">
+    <rect x="120" y="135" width="50" height="22" rx="4"/><rect x="190" y="135" width="50" height="22" rx="4"/><rect x="260" y="135" width="50" height="22" rx="4"/><rect x="330" y="135" width="50" height="22" rx="4"/><rect x="400" y="135" width="50" height="22" rx="4"/><rect x="470" y="135" width="50" height="22" rx="4"/><rect x="540" y="135" width="50" height="22" rx="4"/><rect x="610" y="135" width="50" height="22" rx="4"/><rect x="680" y="135" width="50" height="22" rx="4"/>
+    <rect x="120" y="163" width="50" height="22" rx="4"/><rect x="190" y="163" width="50" height="22" rx="4"/><rect x="260" y="163" width="50" height="22" rx="4"/><rect x="330" y="163" width="50" height="22" rx="4"/><rect x="400" y="163" width="50" height="22" rx="4"/><rect x="470" y="163" width="50" height="22" rx="4"/><rect x="540" y="163" width="50" height="22" rx="4"/><rect x="610" y="163" width="50" height="22" rx="4"/><rect x="680" y="163" width="50" height="22" rx="4"/>
+  </g>
+  <text x="760" y="125" fill="#94a3b8" font-size="11">... 12 players</text>
+  <text x="760" y="140" fill="#94a3b8" font-size="11">(zero-padded)</text>
+  <text x="760" y="170" fill="#94a3b8" font-size="11">PersonModel (ResNet-50)</text>
+  <text x="760" y="185" fill="#94a3b8" font-size="11">gives 512-d per crop</text>
+
+  <!-- pooled vectors -->
+  <g fill="#38bdf8">
+    <rect x="120" y="215" width="50" height="22" rx="4"/><rect x="190" y="215" width="50" height="22" rx="4"/><rect x="260" y="215" width="50" height="22" rx="4"/><rect x="330" y="215" width="50" height="22" rx="4"/><rect x="400" y="215" width="50" height="22" rx="4"/><rect x="470" y="215" width="50" height="22" rx="4"/><rect x="540" y="215" width="50" height="22" rx="4"/><rect x="610" y="215" width="50" height="22" rx="4"/><rect x="680" y="215" width="50" height="22" rx="4"/>
+  </g>
+  <g fill="#fb923c">
+    <rect x="120" y="245" width="50" height="22" rx="4"/><rect x="190" y="245" width="50" height="22" rx="4"/><rect x="260" y="245" width="50" height="22" rx="4"/><rect x="330" y="245" width="50" height="22" rx="4"/><rect x="400" y="245" width="50" height="22" rx="4"/><rect x="470" y="245" width="50" height="22" rx="4"/><rect x="540" y="245" width="50" height="22" rx="4"/><rect x="610" y="245" width="50" height="22" rx="4"/><rect x="680" y="245" width="50" height="22" rx="4"/>
+  </g>
+
+  <!-- vertical flow lines -->
+  <g stroke="#64748b" stroke-width="1.5" stroke-dasharray="3 3">
+    <line x1="145" y1="190" x2="145" y2="213"/><line x1="215" y1="190" x2="215" y2="213"/><line x1="285" y1="190" x2="285" y2="213"/><line x1="355" y1="190" x2="355" y2="213"/><line x1="425" y1="190" x2="425" y2="213"/><line x1="495" y1="190" x2="495" y2="213"/><line x1="565" y1="190" x2="565" y2="213"/><line x1="635" y1="190" x2="635" y2="213"/><line x1="705" y1="190" x2="705" y2="213"/>
+    <line x1="145" y1="268" x2="145" y2="298"/><line x1="215" y1="268" x2="215" y2="298"/><line x1="285" y1="268" x2="285" y2="298"/><line x1="355" y1="268" x2="355" y2="298"/><line x1="425" y1="268" x2="425" y2="298"/><line x1="495" y1="268" x2="495" y2="298"/><line x1="565" y1="268" x2="565" y2="298"/><line x1="635" y1="268" x2="635" y2="298"/><line x1="705" y1="268" x2="705" y2="298"/>
+  </g>
+
+  <!-- LSTM chain: cells light up one by one (left to right, forward direction) -->
+  <g stroke="#c4b5fd" stroke-width="1.5">
+    <rect x="125" y="300" width="40" height="36" rx="6" fill="#8b5cf6" opacity="0.3"><animate attributeName="opacity" calcMode="discrete" values="0.3;1" keyTimes="0;0.001" dur="9s" repeatCount="indefinite"/></rect>
+    <rect x="195" y="300" width="40" height="36" rx="6" fill="#8b5cf6" opacity="0.3"><animate attributeName="opacity" calcMode="discrete" values="0.3;1" keyTimes="0;0.111" dur="9s" repeatCount="indefinite"/></rect>
+    <rect x="265" y="300" width="40" height="36" rx="6" fill="#8b5cf6" opacity="0.3"><animate attributeName="opacity" calcMode="discrete" values="0.3;1" keyTimes="0;0.222" dur="9s" repeatCount="indefinite"/></rect>
+    <rect x="335" y="300" width="40" height="36" rx="6" fill="#8b5cf6" opacity="0.3"><animate attributeName="opacity" calcMode="discrete" values="0.3;1" keyTimes="0;0.333" dur="9s" repeatCount="indefinite"/></rect>
+    <rect x="405" y="300" width="40" height="36" rx="6" fill="#8b5cf6" opacity="0.3"><animate attributeName="opacity" calcMode="discrete" values="0.3;1" keyTimes="0;0.444" dur="9s" repeatCount="indefinite"/></rect>
+    <rect x="475" y="300" width="40" height="36" rx="6" fill="#8b5cf6" opacity="0.3"><animate attributeName="opacity" calcMode="discrete" values="0.3;1" keyTimes="0;0.555" dur="9s" repeatCount="indefinite"/></rect>
+    <rect x="545" y="300" width="40" height="36" rx="6" fill="#8b5cf6" opacity="0.3"><animate attributeName="opacity" calcMode="discrete" values="0.3;1" keyTimes="0;0.666" dur="9s" repeatCount="indefinite"/></rect>
+    <rect x="615" y="300" width="40" height="36" rx="6" fill="#8b5cf6" opacity="0.3"><animate attributeName="opacity" calcMode="discrete" values="0.3;1" keyTimes="0;0.777" dur="9s" repeatCount="indefinite"/></rect>
+    <rect x="685" y="300" width="40" height="36" rx="6" fill="#8b5cf6" opacity="0.3"><animate attributeName="opacity" calcMode="discrete" values="0.3;1" keyTimes="0;0.888" dur="9s" repeatCount="indefinite"/></rect>
+  </g>
+  <g stroke="#a78bfa" stroke-width="2">
+    <line x1="165" y1="318" x2="195" y2="318"/><line x1="235" y1="318" x2="265" y2="318"/><line x1="305" y1="318" x2="335" y2="318"/><line x1="375" y1="318" x2="405" y2="318"/><line x1="445" y1="318" x2="475" y2="318"/><line x1="515" y1="318" x2="545" y2="318"/><line x1="585" y1="318" x2="615" y2="318"/><line x1="655" y1="318" x2="685" y2="318"/>
+  </g>
+
+  <!-- scanning highlight over the current frame column -->
+  <rect x="115" y="68" width="60" height="205" rx="8" fill="none" stroke="#fde047" stroke-width="2.5">
+    <animate attributeName="x" calcMode="discrete" dur="9s" repeatCount="indefinite"
+      values="115;185;255;325;395;465;535;605;675"
+      keyTimes="0;0.111;0.222;0.333;0.444;0.555;0.666;0.777;0.888"/>
+  </rect>
+
+  <!-- classifier -->
+  <path d="M 725 318 L 760 318" stroke="#a78bfa" stroke-width="2"/>
+  <rect x="760" y="296" width="125" height="44" rx="8" fill="#16a34a">
+    <animate attributeName="opacity" values="0.35;0.35;1;1" keyTimes="0;0.88;0.95;1" dur="9s" repeatCount="indefinite"/>
+  </rect>
+  <text x="822" y="315" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">h_fwd || h_bwd</text>
+  <text x="822" y="331" text-anchor="middle" fill="#fff" font-size="11">MLP to 8 classes</text>
+
+  <!-- legend -->
+  <g font-size="12" fill="#cbd5e1">
+    <rect x="120" y="372" width="14" height="14" rx="3" fill="#3b82f6"/><text x="140" y="384">left team crop</text>
+    <rect x="260" y="372" width="14" height="14" rx="3" fill="#f97316"/><text x="280" y="384">right team crop</text>
+    <rect x="410" y="372" width="14" height="14" rx="3" fill="#38bdf8"/><text x="430" y="384">pooled 512-d (per frame)</text>
+    <rect x="620" y="372" width="14" height="14" rx="3" fill="#8b5cf6"/><text x="640" y="384">BiLSTM step</text>
+    <rect x="740" y="372" width="14" height="14" rx="3" fill="none" stroke="#fde047" stroke-width="2"/><text x="760" y="384">current frame</text>
+  </g>
+  <text x="450" y="415" text-anchor="middle" fill="#94a3b8" font-size="12">Unlike B5, there is no per-player LSTM: pooling happens inside every frame, and time is modeled only at group level.</text>
+</svg>

@@ -11,13 +11,13 @@
 3. [Dataset Specifications](#3-dataset-specifications)
 4. [Project Structure](#4-project-structure)
 5. [Data Pipeline (Layer by Layer)](#5-data-pipeline-layer-by-layer)
-6. [Baselines in Detail (B1, B3, B4, B5)](#6-baselines-in-detail)
+6. [Baselines in Detail (B1, B3, B4, B5, B6)](#6-baselines-in-detail)
 7. [Training Framework](#7-training-framework)
 8. [Design Patterns Used](#8-design-patterns-used)
 9. [Performance & Engineering Optimizations](#9-performance--engineering-optimizations)
 10. [HPC / Slurm Infrastructure](#10-hpc--slurm-infrastructure)
 11. [Getting Started](#11-getting-started)
-12. [Known Issues & Tuning Notes](#12-known-issues--tuning-notes)
+12. [Known Issues & Tuning Notes](#12-tuning-notes--architectural-details)
 13. [Roadmap](#13-roadmap)
 14. [Citations](#14-citations)
 
@@ -30,7 +30,7 @@ Recognizing group activity in multi-agent sports scenes such as volleyball requi
 1. **Individual person dynamics** — what each player is doing over time (spiking, setting, jumping, blocking, falling, ...).
 2. **Collective group dynamics** — how the individual behaviors and the players' positions on the court combine into a team-level activity such as **Right Set**, **Left Spike**, or **Right Winpoint**.
 
-This repository implements a **progressive benchmark**. It starts from a single-frame classifier (B1) and moves step by step toward hierarchical spatio-temporal networks (B3 → B4 → B5 → …). Each step adds one new idea, so the effect of every idea can be measured on its own:
+This repository implements a **progressive benchmark**. It starts from a single-frame classifier (B1) and moves step by step toward hierarchical spatio-temporal networks (B3 → B4 → B5 → B6 → …). Each step adds one new idea, so the effect of every idea can be measured on its own:
 
 | Step | New idea added | Question it answers |
 |---|---|---|
@@ -38,6 +38,25 @@ This repository implements a **progressive benchmark**. It starts from a single-
 | B3 | Person-level model + spatial/attention pooling | Does looking at individual players help? |
 | B4 | Temporal modeling of the whole frame (BiLSTM) | Does time help when we still look at the whole scene? |
 | B5 | Temporal modeling of each player's tracklet + court-side pooling | Does combining *person*, *time* and *court side* help? |
+| B6 | Per-frame court-side pooling of person features, then a **group-level** BiLSTM | Is it enough to model time only at the group level? |
+
+### 1.0 Baseline Progression at a Glance
+
+```mermaid
+flowchart LR
+    B1["<b>B1</b><br/>Whole frame<br/>CNN"]
+    B3["<b>B3</b><br/>+ Players<br/>+ Positions<br/>+ Attention"]
+    B4["<b>B4</b><br/>+ Time on the<br/>whole scene<br/>(BiLSTM)"]
+    B5["<b>B5</b><br/>+ Player tracklets<br/>(BiLSTM per player)<br/>+ Court-side max-pool"]
+    B6["<b>B6</b><br/>+ Per-frame person<br/>pooling<br/>+ Group BiLSTM"]
+    B1 -->|add persons| B3
+    B1 -->|add time| B4
+    B3 -->|add time| B5
+    B4 -->|add persons| B5
+    B3 -->|reuse PersonModel,<br/>add time at group level| B6
+    B5 -.->|compare: time at<br/>person vs group level| B6
+    style B6 fill:#16a34a,color:#fff
+```
 
 <p align="center">
   <img src="images/fig1.png" alt="High-level Hierarchical Model" width="600">
@@ -88,6 +107,26 @@ Group Activity Classification
 
 Instead of treating the players as an unordered set, the model uses normalized player coordinates to split them into the two court sides. This keeps useful information about team formation, which matters because every group activity is *side specific* (`l_*` vs `r_*`).
 
+### 1.4 Where Time Is Modeled in Each Baseline
+
+This is the key difference between B4, B5 and B6, so it is shown side by side:
+
+```mermaid
+flowchart TB
+    subgraph B4["B4 — time on the WHOLE SCENE"]
+        direction LR
+        a1["9 full frames"] --> a2["CNN per frame"] --> a3["BiLSTM over time"] --> a4["8 classes"]
+    end
+    subgraph B5["B5 — time on EACH PLAYER, then pool"]
+        direction LR
+        b1["12 tracklets × 9 frames"] --> b2["CNN + BiLSTM per player"] --> b3["court-side max-pool over players"] --> b4["8 classes"]
+    end
+    subgraph B6["B6 — pool players per frame, then time on the GROUP"]
+        direction LR
+        c1["12 tracklets × 9 frames"] --> c2["CNN per crop"] --> c3["court-side max-pool per frame"] --> c4["group BiLSTM over time"] --> c5["8 classes"]
+    end
+```
+
 ---
 
 ## 2. Results at a Glance
@@ -98,11 +137,36 @@ Instead of treating the players as an unordered set, the model uses normalized p
 | **B3** | Multi-task Person Model → Spatial Position + Left/Right Attention Pooling | 68.1% | **83.0% Macro F1** |
 | **B4** | 9-Frame Sequence → ResNet-50 → BiLSTM Frame Model | 63.1% | **82.2% Macro F1** |
 | **B5** | Tracklet-level BiLSTM → 2-Court Max Pooling → Group Classifier | 67.6% | **87.0% Macro F1** |
-| **B6** | Frame-by-frame person pooling → Sequence LSTM | 74.7% | *In Progress* |
+| **B6** | Frame-by-frame person pooling (2 court sides) → Group BiLSTM | 74.7% | **83.5% Macro F1** |
 | **B7** | Full Two-Stage Model (Player LSTMs → Global Pool → Group LSTM) | 80.2% | *In Progress* |
 | **B8** | Full Two-Stage Model (Player LSTMs → 2-Team Spatial Pool → Group LSTM) | 81.9% | *In Progress* |
 
 > **Note on metrics:** the paper reports **accuracy**, while our B3/B4/B5 numbers are **macro F1**. Macro F1 is stricter on minority classes, but the two numbers are not directly interchangeable. The best-checkpoint criterion in all trainers is validation macro F1.
+
+### 2.1 Results Chart
+
+Paper accuracy (%) per baseline, with our own numbers plotted next to them (B1 = accuracy; B3, B4, B5, B6 = macro F1).
+
+```mermaid
+xychart-beta
+    title "Paper accuracy vs. our implementation (B1 = Acc, B3-B6 = Macro F1)"
+    x-axis ["B1", "B3", "B4", "B5", "B6"]
+    y-axis "Score (%)" 50 --> 95
+    bar [66.7, 68.1, 63.1, 67.6, 74.7]
+    bar [70.0, 83.0, 82.2, 87.0, 83.5]
+```
+
+*First series = original paper, second series = this implementation.*
+
+### 2.2 Paper Roadmap Chart (B1 → B8)
+
+```mermaid
+xychart-beta
+    title "Original paper accuracy per baseline (%)"
+    x-axis ["B1", "B3", "B4", "B5", "B6", "B7", "B8"]
+    y-axis "Accuracy (%)" 55 --> 85
+    line [66.7, 68.1, 63.1, 67.6, 74.7, 80.2, 81.9]
+```
 
 ---
 
@@ -138,7 +202,7 @@ The sequence models in this repository use **9 frames** centered on the target f
 t - 4  ...  t - 1  [ t ]  t + 1  ...  t + 4
 ```
 
-For the **tracking annotations** (B5), each player's tracklet contains **20 frames** around the keyframe. We slice `[5:14]` which gives 9 frames centered on the middle of the tracklet (index 9).
+For the **tracking annotations** (B5, B6), each player's tracklet contains **20 frames** around the keyframe. We slice `[5:14]` which gives 9 frames centered on the middle of the tracklet (index 9).
 
 ### 3.4 Video Resolution
 
@@ -159,6 +223,14 @@ Videos `2, 37, 38, 39, 40, 41, 44, 45` are **1920 × 1080**. All others are **12
 | Left spike | 642 |
 | Left set | 633 |
 
+```mermaid
+xychart-beta
+    title "Group activity class counts"
+    x-axis ["R set", "R spike", "R pass", "R win", "L win", "L pass", "L spike", "L set"]
+    y-axis "Samples" 0 --> 900
+    bar [644, 623, 801, 295, 367, 826, 642, 633]
+```
+
 **9 atomic (person) actions**
 
 | Atomic Action | Count |
@@ -172,6 +244,20 @@ Videos `2, 37, 38, 39, 40, 41, 44, 45` are **1920 × 1080**. All others are **12
 | Jumping | 341 |
 | Moving | 5,121 |
 | Standing | 38,696 |
+
+```mermaid
+pie showData
+    title Atomic action distribution (Standing dominates)
+    "Standing" : 38696
+    "Moving" : 5121
+    "Waiting" : 3601
+    "Blocking" : 2458
+    "Digging" : 2333
+    "Setting" : 1332
+    "Falling" : 1241
+    "Spiking" : 1216
+    "Jumping" : 341
+```
 
 > **Imbalance:** `Standing` is more than 55% of all person boxes. This is handled by `person_collate` (§5.5) and by the loss functions (Focal Loss / multitask loss) used in the run scripts.
 
@@ -200,6 +286,8 @@ volleyball_project/
 │
 ├── configs/                         # Hyperparameter & runtime configurations (.yaml)
 │
+├── images/                          # README figures (fig1–fig4.png, b6_animation.svg)
+│
 ├── dataset/
 │   ├── adapters/                    # Template-method dataset adapters
 │   │   ├── base_adapter.py          # BaseAdapter (skeleton + image cache)
@@ -208,7 +296,7 @@ volleyball_project/
 │   │   ├── person_adapter.py        # One person crop per sample   → B3 person model
 │   │   ├── Clip_Adapter.py          # 9-frame whole-scene clip     → B4
 │   │   ├── tracking_adapter.py      # One player tracklet          → B5 stage 1
-│   │   └── TrackingGroupAdapter.py  # All tracklets of a clip      → B5 stage 2
+│   │   └── TrackingGroupAdapter.py  # All tracklets of a clip      → B5 stage 2, B6
 │   │
 │   ├── raw_dataset.py               # Raw frame-level annotation parsing
 │   ├── tracking_raw_dataset.py      # Raw single-player tracklet parsing
@@ -222,9 +310,10 @@ volleyball_project/
 │   ├── baseline_model1/baseline1.py # Whole-scene classifier
 │   ├── baseline_model3/baseline3.py # PersonModel + attention GroupModel
 │   ├── baseline_model4/baseline4.py # Frame-sequence BiLSTM
-│   └── baseline_model5/
-│       ├── baseline5.py             # Person tracklet BiLSTM (B5Model)
-│       └── GroupBaselineModel.py    # Court-side pooling group model
+│   ├── baseline_model5/
+│   │   ├── baseline5.py             # Person tracklet BiLSTM (B5Model)
+│   │   └── GroupBaselineModel.py    # Court-side pooling group model
+│   └── baseline_model6/baseline6.py # Per-frame court-side pooling + group BiLSTM (B6Model)
 │
 ├── trainers/
 │   ├── base_trainer.py              # Single-GPU BaseTrainer (AMP, hooks)
@@ -251,8 +340,8 @@ flowchart LR
     C --> D["Transform<br/>augment + normalize"]
     D --> E["DataLoader + collate_fn<br/>batching / padding"]
     E --> F["Model"]
-
 ```
+
 ### 5.1 Raw Datasets — *"what is in the files?"*
 
 Raw datasets only **parse text and build file paths**. They never open images and never produce tensors.
@@ -261,7 +350,7 @@ Raw datasets only **parse text and build file paths**. They never open images an
 |---|---|---|
 | `VolleyballRawDataset` (`raw_dataset.py`) | `{"img": path, "label": group_label, "ann": [tokens...]}` — one keyframe with all its player boxes | B1, B3, B4 |
 | `TrackingRawDataset` (`tracking_raw_dataset.py`) | `{video_id, clip_id, track_id, frames[20], boxes[20], label}` — **one player tracklet**. The label is the action at the **middle frame** (`len//2`) | B5 stage 1 |
-| `TrackingRawDataset` (`TrackingGroupRawDataset.py`) | `{video_id, clip_id, group_label, players:[{track_id, frames, boxes}, ...]}` — **one clip with all its players** | B5 stage 2 |
+| `TrackingRawDataset` (`TrackingGroupRawDataset.py`) | `{video_id, clip_id, group_label, players:[{track_id, frames, boxes}, ...]}` — **one clip with all its players** | B5 stage 2, B6 |
 
 Details worth knowing:
 
@@ -287,7 +376,7 @@ __getitem__ → load_sample(idx)            (hook 2: how to load it?)
 | `GroupAdapter` | `(crops[N,3,224,224], positions[N,2], group_label)` | 1 per keyframe | Overrides `__getitem__` (returns 3 values); `N` varies per frame |
 | `ClipAdapter` | `(clip[T,3,224,224], group_label)` with `T = 2·n_frames + 1 = 9` | 1 per keyframe | Uses a **directory-listing cache** to find the neighbours of the keyframe |
 | `TrackingAdapter` | `(Video[9,3,224,224], action_label)` | 1 per tracklet | Frames `[5:14]`; LRU cache of `uint8` tensors (default 1500) |
-| `TrackingGroupAdapter` (class `TrackingAdapter`) | `({"persons": Video[12,9,3,224,224], "positions": [12,9,2]}, group_label)` | 1 per clip | Pre-allocates a fixed 12-player tensor, zero-padding missing players; LRU cache (default 1100 clips) |
+| `TrackingGroupAdapter` (class `TrackingAdapter`) | `({"persons": Video[12,9,3,224,224], "positions": [12,9,2]}, group_label)` | 1 per clip | Pre-allocates a fixed 12-player tensor, zero-padding missing players; LRU cache (default 1100 clips). **Shared by B5 stage 2 and B6** |
 
 ### 5.3 Image Caching Strategy
 
@@ -319,7 +408,7 @@ center_y = ((y1 + y2) / 2) / image_height − 0.5
 | `person_collate` | B3 person model | Stacks person crops but **keeps at most 4 `standing` samples per batch**, a cheap way of fighting the 55%+ `Standing` imbalance. The effective batch size is therefore variable (≤ requested). |
 | `group_collate` | B3 group model | Frames have a different number of players. The function finds `max_n` in the batch, allocates zero tensors `persons[B,max_n,3,224,224]`, `positions[B,max_n,2]` and copies each sample into the front. Returns `({"persons","positions"}, labels)`. Padded slots are all-zero and are detected later as *invalid players*. |
 
-B5 does not need a custom collate: `TrackingGroupAdapter` already pads to a fixed 12 players, so PyTorch's default collate is sufficient.
+B5 and B6 do not need a custom collate: `TrackingGroupAdapter` already pads to a fixed 12 players, so PyTorch's default collate is sufficient.
 
 ### 5.6 Transforms (`transforms.py`)
 
@@ -332,7 +421,7 @@ All transforms share one pipeline order: **Resize → Crop → [Augmentations] �
 | `PersonTransform` | B3 person crops | HFlip(0.5), Rotation(5°, p=0.7), ColorJitter, Grayscale(0.05), Sharpness(0.1). Resize directly to 224, **no center crop** at validation |
 | `B4LSTMTransform` | B4 | Rotation(3°, p=0.7), ColorJitter(0.2, 0.2, 0.2, 0.05) |
 | `B5PersonTransform` (v2) | B5 stage 1 | HFlip, Rotation(5°, p=0.7), ColorJitter, Grayscale, Sharpness |
-| `B5GroupTransform` (v2) | B5 stage 2 | Rotation(3°), ColorJitter(0.2, 0.2, 0.2, 0.05) |
+| `B5GroupTransform` (v2) | B5 stage 2, B6 | Rotation(3°), ColorJitter(0.2, 0.2, 0.2, 0.05) |
 
 Two families exist:
 
@@ -349,7 +438,7 @@ Two families exist:
 
 ## 6. Baselines in Detail
 
-All models share the same **backbone**:
+All models share the same **backbone** idea:
 
 ```python
 ResNet50(pretrained=True)   # ImageNet weights, final FC removed
@@ -378,6 +467,20 @@ flowchart LR
 
 **Limits:** no notion of *who* does *what*, and no time.
 
+**Data flow (sequence view)**
+
+```mermaid
+sequenceDiagram
+    participant D as FrameAdapter
+    participant M as Baseline1
+    participant T as BaseTrainer
+    D->>T: frame (B,3,224,224), label (B)
+    T->>M: forward(frame)
+    M->>M: ResNet-50 → 2048-d → Dropout → Linear
+    M-->>T: logits (B,8)
+    T->>T: CrossEntropy, accuracy, macro F1
+```
+
 ---
 
 ### 6.2 Baseline 3 — Person Model + Attention Group Model (two stages)
@@ -395,7 +498,7 @@ flowchart LR
 - **Two heads on a shared 512-d feature:**
   - `action_head` — 9 atomic actions (the main target).
   - `coarse_head` — 3 coarse motion groups (auxiliary task that regularizes the shared representation).
-- `forward(x)` returns `(coarse_logits, action_logits)`; `forward(x, return_feat=True)` returns the **512-d shared feature** used by stage 2.
+- `forward(x)` returns `(coarse_logits, action_logits)`; `forward(x, return_feat=True)` returns the **512-d shared feature** used by stage 2 (and by B6).
 - Adapter: `PersonAdapter` (15% padded crops). Collate: `person_collate`. Transform: `PersonTransform`.
 - Trainer: `PersonTrainer`, which overrides `compute_loss` to unpack the multi-task loss `(total, action_loss, motion_loss, action_targets)` and logs the two parts separately via the `extras` dictionary.
 
@@ -433,6 +536,14 @@ Step by step:
 **Why it works:** the person model gives a strong, action-aware feature; the attention lets the group model focus on the *key actor* (e.g. the spiker), and the left/right split encodes the side of the activity.
 
 **Limits:** still a **single frame** — no motion.
+
+**Two-stage training flow**
+
+```mermaid
+flowchart LR
+    S1["Stage 1<br/>train PersonModel<br/>(person crops → 9 actions)"] -->|save weights| W[("person_model.pt")]
+    W -->|load + reuse| S2["Stage 2<br/>train GroupModel<br/>(frames → 8 group classes)"]
+```
 
 ---
 
@@ -530,18 +641,177 @@ Step by step:
 
 ---
 
-### 6.5 Summary Table
+### 6.5 Baseline 6 — Per-Frame Person Pooling + Group BiLSTM
 
-| | B1 | B3 | B4 | B5 |
-|---|:---:|:---:|:---:|:---:|
-| Looks at individual players | ✗ | ✔ | ✗ | ✔ |
-| Uses time | ✗ | ✗ | ✔ | ✔ |
-| Uses player positions | ✗ | ✔ | ✗ | ✔ |
-| Court-side split | ✗ | ✔ (attention) | ✗ | ✔ (max-pool) |
-| Training stages | 1 | 2 | 1 | 2 |
-| Input per sample | 1 frame | 1 frame, ≤N crops | 9 full frames | N tracklets × 9 frames |
-| Group feature size | 2048 | 1024 | 1024 | 2048 |
-| Multi-GPU (DDP) used | – | – | – | ✔ |
+**Idea.** B5 puts the LSTM on each **player** and pools afterwards. B6 flips the order: first extract a CNN feature for every player crop **in every frame**, pool the players **inside each frame** (left team / right team), and only then run a **group-level BiLSTM over the 9 pooled frame descriptors**. Time is therefore modeled only once, on the scene summary. This matches the paper's "frame-by-frame person pooling → sequence LSTM" baseline (B6, 74.7% in the paper).
+
+#### 6.5.1 Animated Overview
+
+<p align="center">
+  <img src="images/b6_animation.svg" alt="Animated overview of Baseline 6" width="900">
+  <br>
+  <em>Figure 5 — Baseline 6. The yellow frame scans the 9 time steps; every step pools the left and right team, and the group BiLSTM consumes the pooled sequence from t-4 to t+4. The green box lights up when the final hidden states are classified.</em>
+</p>
+
+#### 6.5.2 Architecture
+
+```mermaid
+flowchart TD
+    X["persons<br/>(B, N=12, T=9, 3, 224, 224)"] --> F1["view (B·N·T, 3, 224, 224)"]
+    F1 --> BB["Backbone = PersonModel<br/>forward(x, return_feat=True)<br/>→ (B·N·T, 512)"]
+    BB --> F2["view (B, N, T, 512)"]
+
+    P["positions<br/>(B, N, T, 2)"] --> MX["mean_x = pos[...,0].mean over T<br/>→ (B, N)"]
+    P --> VM["valid_mask = |pos| summed over T,2 > 0<br/>→ (B, N)"]
+    MX --> LM["left_mask = mean_x below 0 AND valid"]
+    MX --> RM["right_mask = mean_x at least 0 AND valid"]
+    VM --> LM
+    VM --> RM
+
+    F2 --> LF["masked_fill(~left_mask, -inf)"]
+    F2 --> RF["masked_fill(~right_mask, -inf)"]
+    LM --> LF
+    RM --> RF
+    LF --> LPOOL["max over N<br/>→ (B, T, 512)"]
+    RF --> RPOOL["max over N<br/>→ (B, T, 512)"]
+    LPOOL --> CAT["concat<br/>→ (B, T, 1024)"]
+    RPOOL --> CAT
+    CAT --> LSTM["BiLSTM(1024 → 512, bidirectional)<br/>over the T=9 steps"]
+    LSTM --> H["h_n[-2] ‖ h_n[-1]<br/>→ (B, 1024)"]
+    H --> CLS["Dropout → Linear 1024→256 → ReLU → Dropout → Linear 256→8"]
+    CLS --> OUT["group logits (B, 8)"]
+    style LSTM fill:#8b5cf6,color:#fff
+    style OUT fill:#16a34a,color:#fff
+```
+
+#### 6.5.3 Step-by-Step Logic
+
+1. **Fold everything into one batch.** `(B, N, T, C, H, W)` becomes `(B·N·T, C, H, W)`, so all crops of all players in all frames of all clips pass through the CNN in a single vectorized call. With `B=1` that is already `12 × 9 = 108` crops.
+2. **Per-crop features.** The backbone is the stage-1 **`PersonModel`** called with `return_feat=True`, which returns the **512-d shared feature** (see §6.2). The result is unfolded to `(B, N, T, 512)`.
+3. **Masks from positions.**
+   - `valid_mask` is true when the player's position tensor is not all zero over the whole tracklet (padding is zero).
+   - `mean_x` is the mean x coordinate over the 9 frames. `mean_x < 0` means *left team*, `mean_x ≥ 0` means *right team*. Each player keeps **one** side for the whole clip, so a player cannot jump between teams in the middle of the sequence.
+4. **Court-side masking.** `masked_fill` writes the lowest float value into players that are not on the requested side or are padding, so they can never win the max. The `(B, N)` mask is expanded with two dummy dimensions to broadcast over `(B, N, T, 512)`.
+5. **Per-frame max-pooling over players.** `torch.max(..., dim=1)` collapses `N`, giving **one 512-d vector per frame per team**: `(B, T, 512)` for left and for right.
+6. **Group sequence.** Left and right vectors are concatenated into `(B, T, 1024)`, a *sequence of 9 scene descriptors*.
+7. **Group BiLSTM.** A single-layer bidirectional LSTM (`input_size=1024`, `hidden_size=512`) reads the 9 steps. The last forward and last backward hidden states are concatenated: `(B, 1024)`.
+8. **Classifier.** `Dropout → Linear(1024,256) → ReLU → Dropout → Linear(256,8)` predicts the 8 group activities.
+
+#### 6.5.4 Shape Flow
+
+| Step | Operation | Shape |
+|---|---|---|
+| Input persons | from `TrackingGroupAdapter` | `(B, 12, 9, 3, 224, 224)` |
+| Input positions | normalized centers | `(B, 12, 9, 2)` |
+| Fold | `view(B·N·T, C, H, W)` | `(B·108, 3, 224, 224)` |
+| Backbone (`PersonModel`, `return_feat=True`) | per-crop feature | `(B·108, 512)` |
+| Unfold | `view(B, N, T, 512)` | `(B, 12, 9, 512)` |
+| `mean_x`, `valid_mask` | from positions | `(B, 12)` each |
+| Left / right masked features | `masked_fill(..., -inf)` | `(B, 12, 9, 512)` each |
+| Max over players | `torch.max(dim=1)` | `(B, 9, 512)` each |
+| Concat left ‖ right | per time step | `(B, 9, 1024)` |
+| Group BiLSTM | `h_n[-2] ‖ h_n[-1]` | `(B, 1024)` |
+| Classifier | 2-layer MLP | `(B, 8)` |
+
+#### 6.5.5 Forward Pass (sequence view)
+
+```mermaid
+sequenceDiagram
+    participant A as TrackingGroupAdapter
+    participant M as B6Model
+    participant PM as PersonModel (backbone)
+    participant L as Group BiLSTM
+    participant C as Classifier
+    A->>M: persons (B,12,9,3,224,224), positions (B,12,9,2)
+    M->>M: fold to (B·12·9, 3, 224, 224)
+    M->>PM: forward(x, return_feat=True)
+    PM-->>M: features (B·108, 512)
+    M->>M: unfold to (B,12,9,512)
+    M->>M: build valid / left / right masks from positions
+    M->>M: masked max-pool over players, per frame, per team
+    M->>L: sequence (B, 9, 1024)
+    L-->>M: h_n forward & backward → (B, 1024)
+    M->>C: final_feat
+    C-->>M: logits (B, 8)
+```
+
+#### 6.5.6 Components
+
+| Item | Value |
+|---|---|
+| Model | `B6Model(backbone, num_classes=8, drop_p=0.3, feature_dim=512)` (`models/baseline_model6/baseline6.py`) |
+| Backbone | Stage-1 `PersonModel` from B3 (called with `return_feat=True`, returns 512-d) |
+| Raw dataset | `TrackingRawDataset` in `TrackingGroupRawDataset.py` (clip with all its players) |
+| Adapter | `TrackingGroupAdapter` (fixed 12 players × 9 frames, zero padded) |
+| Transform | `B5GroupTransform` (v2) — same flip / rotation / jitter for all frames and players of a clip |
+| Pooling | Court-side **max-pool** over players, **per frame** |
+| Temporal module | 1-layer **BiLSTM** (`1024 → 512`, bidirectional) on the group sequence |
+| Group feature size | 1024 (`h_fwd ‖ h_bwd`) |
+| Loss / metric | Cross-entropy; accuracy + macro F1 (best checkpoint = validation macro F1) |
+| Trainer | `GroupTrainer` / `GroupTrainer_ddp` (dict input `{"persons","positions"}`) |
+| Paper reference | 74.7% accuracy |
+| Our result | **83.5% macro F1** (paper: 74.7% acc.) |
+
+#### 6.5.7 B5 vs. B6 — What Actually Changes
+
+| | B5 | B6 |
+|---|---|---|
+| Per-player temporal model | ✔ BiLSTM on each tracklet | ✗ none (CNN feature per frame only) |
+| Where pooling happens | once, after the person BiLSTM | in **every frame**, before any LSTM |
+| Group temporal model | ✗ none (single max-pool result) | ✔ BiLSTM over the 9 pooled frames |
+| Backbone feature | 1024-d (ResNet-50 → BiLSTM) | 512-d (`PersonModel` feature) |
+| LSTM input | per player: 512-d projected CNN feature | per frame: 1024-d (left ‖ right) |
+| Number of LSTM sequences per clip | `N = 12` (one per player) | `1` (one per clip) |
+| Group feature | 2048 (left ‖ right) | 1024 (`h_fwd ‖ h_bwd`) |
+| Strength | keeps *who* moved how over time | cheap, sees how the **team summary evolves** |
+| Weakness | no group-level dynamics | the max-pool can hide which player did what before time is modeled |
+
+```mermaid
+flowchart LR
+    subgraph B5["B5: LSTM then pool"]
+        direction TB
+        p1["players × frames"] --> p2["CNN"] --> p3["BiLSTM per player"] --> p4["max-pool per side"] --> p5["classifier"]
+    end
+    subgraph B6["B6: pool then LSTM"]
+        direction TB
+        q1["players × frames"] --> q2["CNN"] --> q3["max-pool per side, per frame"] --> q4["BiLSTM on the group"] --> q5["classifier"]
+    end
+```
+
+#### 6.5.8 Design Notes & Caveats
+
+- **Composition.** `B6Model` receives the backbone through its constructor (Dependency Injection, §8.4) and only requires that `backbone(x, return_feat=True)` returns `(·, feature_dim)`. Swapping the person model never touches the pooling or LSTM code.
+- **Memory.** There is no per-player LSTM to shrink the feature, but there are `B·N·T` crops per batch, so GPU memory scales with `12 × 9 = 108` crops per clip. Use a small per-GPU batch size, mixed precision, or freeze the backbone when memory is tight.
+- **Empty court side.** If a clip has *no valid players* on one side, that side's max-pool returns `torch.finfo(dtype).min` for every frame. Feeding that value into the LSTM can produce huge activations or `NaN`/`inf` (especially under AMP / float16). A recommended fix is to replace pooled values that are still `finfo.min` with zeros before concatenation, for example `left_pooling = left_pooling.masked_fill(left_pooling <= neg_inf, 0.0)`. In the normal volleyball data both sides always have players, so this is an edge case, but it is cheap to guard.
+- **Fixed team assignment.** Teams are decided by the **mean x over the clip**, not frame by frame, so a player near the net keeps the same side for all 9 steps and the pooled sequence is consistent over time.
+- **Mask edge case.** Same as B5: a player whose position is exactly `(0, 0)` across all frames is treated as padding (see §12).
+- **Fold with `view`.** `x.view(B·N·T, C, H, W)` needs a contiguous tensor. The default collate output of `TrackingGroupAdapter` is contiguous; if a custom transform ever permutes dimensions, use `.reshape(...)` instead.
+
+---
+
+### 6.6 Summary Table
+
+| | B1 | B3 | B4 | B5 | B6 |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Looks at individual players | ✗ | ✔ | ✗ | ✔ | ✔ |
+| Uses time | ✗ | ✗ | ✔ | ✔ | ✔ |
+| Where time is modeled | – | – | whole scene | each player | **group (pooled frames)** |
+| Uses player positions | ✗ | ✔ | ✗ | ✔ | ✔ |
+| Court-side split | ✗ | ✔ (attention) | ✗ | ✔ (max-pool) | ✔ (max-pool, per frame) |
+| Training stages | 1 | 2 | 1 | 2 | 2 (reuses B3 `PersonModel`) |
+| Input per sample | 1 frame | 1 frame, ≤N crops | 9 full frames | N tracklets × 9 frames | N tracklets × 9 frames |
+| Group feature size | 2048 | 1024 | 1024 | 2048 | 1024 |
+| Multi-GPU (DDP) used | – | – | – | ✔ | ✔ (recommended) |
+
+#### Capability Comparison (visual)
+
+```mermaid
+flowchart TB
+    subgraph legend["Capabilities added at each step"]
+        direction LR
+        c1["B1<br/>scene"] --> c2["B3<br/>+ persons<br/>+ positions"] --> c3["B4<br/>+ scene time"] --> c4["B5<br/>+ person time<br/>+ court pool"] --> c5["B6<br/>+ per-frame pool<br/>+ group time"]
+    end
+```
 
 ---
 
@@ -558,6 +828,19 @@ for epoch:
     scheduler.step()
     print_epoch(...)
     if val F1 ≥ best: save_checkpoint(...)
+```
+
+```mermaid
+flowchart TD
+    S["start epoch"] --> TR["_run_epoch(train, training=True)"]
+    TR --> VA["_run_epoch(val, training=False)"]
+    VA --> SC["scheduler.step()"]
+    SC --> PR["print_epoch()"]
+    PR --> CK{"val macro F1 ≥ best?"}
+    CK -- yes --> SV["save_checkpoint()"]
+    CK -- no --> NX["next epoch"]
+    SV --> NX
+    NX --> S
 ```
 
 Inside `_run_epoch`:
@@ -597,13 +880,56 @@ Same lifecycle, with the changes needed for `torchrun`:
 ### 7.4 Specialized Trainers
 
 - **`PersonTrainer`** — multi-task bookkeeping (action + motion losses shown separately).
-- **`GroupTrainer`** / **`GroupTrainer_ddp`** — only override `move_input` because the model input is a dictionary `{"persons", "positions"}`.
+- **`GroupTrainer`** / **`GroupTrainer_ddp`** — only override `move_input` because the model input is a dictionary `{"persons", "positions"}`. Used by B3 stage 2, B5 stage 2 and **B6**.
 
 ---
 
 ## 8. Design Patterns Used
 
 The repository is intentionally small-class and pattern-driven. Each pattern below solves a concrete duplication or coupling problem that appeared while the baselines were being built.
+
+```mermaid
+classDiagram
+    class BaseAdapter {
+        +build_index()
+        +load_sample(idx)
+        +__getitem__(idx)
+    }
+    class FrameAdapter
+    class PersonAdapter
+    class GroupAdapter
+    class ClipAdapter
+    class TrackingAdapter
+    class TrackingGroupAdapter
+    BaseAdapter <|-- FrameAdapter
+    BaseAdapter <|-- PersonAdapter
+    BaseAdapter <|-- GroupAdapter
+    BaseAdapter <|-- ClipAdapter
+    BaseAdapter <|-- TrackingAdapter
+    BaseAdapter <|-- TrackingGroupAdapter
+
+    class BaseTrainer {
+        +train()
+        +move_input(x)
+        +compute_loss(outputs, y)
+        +print_epoch()
+    }
+    class PersonTrainer
+    class GroupTrainer
+    class GroupTrainer_ddp
+    BaseTrainer <|-- PersonTrainer
+    BaseTrainer <|-- GroupTrainer
+    BaseTrainer <|-- GroupTrainer_ddp
+
+    class PersonModel
+    class GroupModel
+    class B5Model
+    class GroupBaselineModel
+    class B6Model
+    GroupModel o-- PersonModel : composition
+    GroupBaselineModel o-- B5Model : composition
+    B6Model o-- PersonModel : backbone
+```
 
 ### 8.1 Template Method — dataset adapters
 
@@ -660,7 +986,7 @@ Behavior that changes between experiments is **passed in, not hard-coded**:
 - `accuracy`, `f1_score`, `save_checkpoint` functions;
 - `transform` objects and `label_map` dictionaries for adapters;
 - `collate_fn` and `sampler` for the DataLoader;
-- the **`backbone`** for every model (`Baseline1(backbone, …)`, `B4ClipModel(backbone, …)`), so ResNet-50 can be swapped without touching the heads.
+- the **`backbone`** for every model (`Baseline1(backbone, …)`, `B4ClipModel(backbone, …)`, `B6Model(backbone, …)`), so ResNet-50 or the `PersonModel` can be swapped without touching the heads.
 
 ### 8.5 Composition / Decorator-style model wrapping
 
@@ -668,6 +994,7 @@ Higher-level models **wrap** lower-level ones instead of inheriting from them:
 
 - `GroupModel` holds a `PersonModel` and calls it with `return_feat=True`.
 - `GroupBaselineModel` holds a `B5Model` and replaces its `classifier` with `nn.Identity()`.
+- `B6Model` holds a `PersonModel` as `self.backbone` and calls it with `return_feat=True` for every crop of every frame.
 
 This gives clean transfer learning (pre-train stage 1, plug into stage 2) and makes it trivial to freeze or fine-tune the inner model.
 
@@ -698,7 +1025,7 @@ Each arrow is a clean interface; changing the augmentation never touches the par
 | Template Method (transforms) | `transforms.py` (`BaseTransform`, `BaseTransformV2`) |
 | Template Method / Hooks (training) | `base_trainer.py`, `DDP_base_trainer.py`, `person_trainer.py`, `group_trainer.py` |
 | Strategy / DI | trainer constructors, model constructors, `build_dataloader` |
-| Composition | `GroupModel`, `GroupBaselineModel` |
+| Composition | `GroupModel`, `GroupBaselineModel`, `B6Model` |
 | Adapter | `dataset/adapters/*` |
 | Caching (memo / LRU) | `base_adapter.py`, `Clip_Adapter.py`, `tracking_adapter.py`, `TrackingGroupAdapter.py` |
 
@@ -720,7 +1047,14 @@ Crops are stored as `np.uint8` at 256×256 (or `torch.uint8` tensors for trackle
 
 ### 9.4 Dimension Folding for GPU Parallelism
 
-`(B, N, T, C, H, W) → (B·N, T, C, H, W)` (and `(B, T, …) → (B·T, …)` in B4) lets the CNN and LSTM process all players / frames in a single vectorized call, and then `view` restores the structure.
+`(B, N, T, C, H, W) → (B·N, T, C, H, W)` (B5), `(B, N, T, C, H, W) → (B·N·T, C, H, W)` (B6) and `(B, T, …) → (B·T, …)` (B4) let the CNN and LSTM process all players / frames in a single vectorized call, and then `view` restores the structure.
+
+```mermaid
+flowchart LR
+    A["B4<br/>(B, T, C, H, W)"] -->|fold| A2["(B·T, C, H, W)"]
+    B["B5<br/>(B, N, T, C, H, W)"] -->|fold| B2["(B·N, T, C, H, W)"]
+    C["B6<br/>(B, N, T, C, H, W)"] -->|fold| C2["(B·N·T, C, H, W)"]
+```
 
 ### 9.5 Mixed Precision
 
@@ -751,6 +1085,17 @@ Both scripts target a cluster with **NFS** home directories and **local `/tmp`**
 | Backend | `gloo` (no NCCL P2P flag needed) |
 | GPU profiling (optional, commented block) | background `pynvml` sampler writes `gpu_profile.csv` every 10 s; a `trap` guarantees it is killed when the job ends |
 
+```mermaid
+flowchart LR
+    J["sbatch script"] --> N["pin to gpu1 node"]
+    N --> DL{"videos/ exists in /tmp?"}
+    DL -- no --> K["kaggle download → /tmp/$USER/volleyball_data"]
+    DL -- yes --> W
+    K --> W["download pretrained weights once<br/>TORCH_HOME=/tmp/$USER/torch_cache"]
+    W --> R["torchrun --standalone --nproc_per_node=N"]
+    R --> T["train + validate (DDP, gloo)"]
+```
+
 ---
 
 ## 11. Getting Started
@@ -764,7 +1109,7 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
 pip install pillow numpy pyyaml scikit-learn pynvml kaggle
 ```
 
-> `tv_tensors` and `torchvision.transforms.v2` (used by B5) require a reasonably recent `torchvision` (≥ 0.16).
+> `tv_tensors` and `torchvision.transforms.v2` (used by B5 and B6) require a reasonably recent `torchvision` (≥ 0.16).
 
 ### 11.2 Dataset Layout
 
@@ -807,6 +1152,10 @@ python runs/baseline4/Run_Baseline4.py
 
 # Baseline 5 — tracklet BiLSTM + group spatial pooling (multi-GPU)
 torchrun --standalone --nproc_per_node=2 runs/baseline5/Run_GroupBaseline5_ddp.py
+
+# Baseline 6 — per-frame person pooling + group BiLSTM (multi-GPU)
+# (needs the B3 PersonModel weights from the line above as the backbone)
+torchrun --standalone --nproc_per_node=2 runs/baseline6/Run_Baseline6_ddp.py
 ```
 
 ### 11.4 Slurm
@@ -832,21 +1181,33 @@ sbatch run_volleyball_ddp.sh    # multi-GPU with torchrun
 These notes highlight specific hardware resource considerations and algorithmic edge cases. They do not affect the reported architecture but are useful for tuning and scaling the project on different environments.
 
 **Resource Management & Caching**
-* **Cache Memory Limits:** A cached group clip is `12 × 9 × 3 × 224 × 224` bytes (≈ 15.5 MiB). With the default `cache_size=1100`, this consumes approximately **17 GB per DataLoader worker**. Since each worker maintains its own cache, you should reduce `cache_size` or `num_workers` if you hit RAM/OOM limits on smaller nodes.
-* **Dynamic Batch Sizes:** The `person_collate` function dynamically limits `standing` samples per batch to handle class imbalance. Because of this, the effective batch size varies globally, and BatchNorm batches can occasionally become small. 
+* **Cache Memory Limits:** A cached group clip is `12 × 9 × 3 × 224 × 224` bytes (≈ 15.5 MiB). With the default `cache_size=1100`, this consumes approximately **17 GB per DataLoader worker**. Since each worker maintains its own cache, you should reduce `cache_size` or `num_workers` if you hit RAM/OOM limits on smaller nodes. This applies to both B5 stage 2 and B6.
+* **Dynamic Batch Sizes:** The `person_collate` function dynamically limits `standing` samples per batch to handle class imbalance. Because of this, the effective batch size varies globally, and BatchNorm batches can occasionally become small.
+* **B6 GPU memory:** the CNN sees `B × 12 × 9` crops per step. Lower the batch size first, then consider freezing the backbone or running it under `torch.no_grad()` if you only train the pooling + LSTM + classifier.
 
 **Algorithmic Edge Cases**
-* **Position Masking (B5):** Group positions are normalized to `(N, T, 2)`. The validity mask checks if the absolute sum is greater than zero (`abs().sum() > 0`). Technically, if a player were positioned exactly at the geometric center `(0, 0)` of the image across all 9 frames, they would be treated as padding. While this is practically impossible in dynamic sports footage, it is a known mathematical edge case of the masking logic.
-* **Empty Court Sides:** If a frame has absolutely no valid players on one side of the court, the softmax (B3) or max-pool (B5) runs entirely over masked values. B3 gracefully returns a uniform average of masked features, and B5 returns the minimum float value.
+* **Position Masking (B5, B6):** Group positions are normalized to `(N, T, 2)`. The validity mask checks if the absolute sum is greater than zero (`abs().sum() > 0`). Technically, if a player were positioned exactly at the geometric center `(0, 0)` of the image across all 9 frames, they would be treated as padding. While this is practically impossible in dynamic sports footage, it is a known mathematical edge case of the masking logic.
+* **Empty Court Sides:** If a frame has absolutely no valid players on one side of the court, the softmax (B3) or max-pool (B5, B6) runs entirely over masked values. B3 gracefully returns a uniform average of masked features, B5 returns the minimum float value, and **B6 forwards that minimum float value into the LSTM at every time step**. For B6 it is safer to zero-out those pooled vectors before concatenation (see §6.5.8).
+
 ---
 
 ## 13. Roadmap
 
-- **B6** — frame-by-frame person pooling → sequence LSTM.
+- **B6** — done (`B6Model`): **83.5% macro F1**.
 - **B7** — full two-stage model: player LSTMs → global pooling → group LSTM.
 - **B8** — full two-stage model with 2-team spatial pooling → group LSTM.
 - Unit tests for adapters and collate functions.
 - Config-driven run scripts (`configs/*.yaml`) for all baselines.
+
+```mermaid
+flowchart LR
+    done1["B1 ✔"] --> done3["B3 ✔"] --> done4["B4 ✔"] --> done5["B5 ✔"] --> b6["B6 ✔"] --> b7["B7<br/>planned"] --> b8["B8<br/>planned"]
+    style done1 fill:#16a34a,color:#fff
+    style done3 fill:#16a34a,color:#fff
+    style done4 fill:#16a34a,color:#fff
+    style done5 fill:#16a34a,color:#fff
+    style b6 fill:#16a34a,color:#fff
+```
 
 ---
 
@@ -886,7 +1247,9 @@ Temporal Dynamics (B4)
     ↓
 Player Tracklets + Court-Side Pooling (B5)
     ↓
-Group Temporal Dynamics (B6–B8, in progress)
+Per-Frame Pooling + Group Temporal Dynamics (B6)
+    ↓
+Full Hierarchical Models (B7–B8, in progress)
     ↓
 Group Activity Recognition
 ```
