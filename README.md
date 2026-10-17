@@ -541,19 +541,9 @@ Step by step:
 
 ```mermaid
 flowchart LR
-    S1["Stage 1: train PersonModel (person crops -> 9 actions)"] -- save weights --> W["person_model.pt"]
-    W -- load and reuse --> S2["Stage 2: train GroupModel (frames -> 8 group classes)"]
-```
-
-
-
-```mermaid
-flowchart LR
     S1["Stage 1<br/>train PersonModel<br/>(person crops → 9 actions)"] -->|save weights| W["('person_model.pt')"]
     W -->|load + reuse| S2["Stage 2<br/>train GroupModel<br/>(frames → 8 group classes)"]
 ```
-
-
 ---
 
 ### 6.3 Baseline 4 — Scene-Level Frame Sequence with BiLSTM
