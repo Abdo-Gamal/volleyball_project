@@ -541,8 +541,8 @@ Step by step:
 
 ```mermaid
 flowchart LR
-    S1["Stage 1<br/>train PersonModel<br/>(person crops → 9 actions)"] -->|save weights| W["('person_model.pt')"]
-    W -->|load + reuse| S2["Stage 2<br/>train GroupModel<br/>(frames → 8 group classes)"]
+    S1["Stage 1 <br> train PersonModel <br> (crops -> 9 actions)"] -- "save weights" --> W["person_model.pt"]
+    W -- "load and reuse" --> S2["Stage 2 <br> train GroupModel <br> (frames -> 8 group classes)"]
 ```
 ---
 
