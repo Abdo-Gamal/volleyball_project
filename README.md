@@ -769,20 +769,20 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    subgraph B5 [B5: LSTM then pool]
+    subgraph B5 ["B5: LSTM then pool"]
         direction TB
-        p1[players × frames] --> p2[CNN]
-        p2 --> p3[BiLSTM per player]
-        p3 --> p4[max-pool per side]
-        p4 --> p5[classifier]
+        p1["players × frames"] --> p2["CNN"]
+        p2 --> p3["BiLSTM per player"]
+        p3 --> p4["max-pool per side"]
+        p4 --> p5["classifier"]
     end
 
-    subgraph B6 [B6: pool then LSTM]
+    subgraph B6 ["B6: pool then LSTM"]
         direction TB
-        q1[players × frames] --> q2[CNN]
-        q2 --> q3[max-pool per side, per frame]
-        q3 --> q4[BiLSTM on the group]
-        q4 --> q5[classifier]
+        q1["players × frames"] --> q2["CNN"]
+        q2 --> q3["max-pool per side, per frame"]
+        q3 --> q4["BiLSTM on the group"]
+        q4 --> q5["classifier"]
     end
 ```
 
