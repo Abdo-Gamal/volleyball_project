@@ -54,7 +54,7 @@ class B5Model(nn.Module):
             nn.Linear(lstm_out_dim, num_classes)
         )
 
-    def forward(self, x):                        # (B, T, 3, 224, 224)
+    def forward(self, x,return_seq=False):                        # (B, T, 3, 224, 224)
         B, T, C, H, W = x.shape
 
         x = x.view(B * T, C, H, W)              # (B*T, 3, 224, 224)
@@ -63,7 +63,10 @@ class B5Model(nn.Module):
         x = x.view(B, T, -1)                     # (B, T, hidden_dim)
         x = self.norm(x)                         # (B, T, hidden_dim)
 
-        _, (h_n, _) = self.lstm(x)        # return ouput ,(hidden state , ) 
+        out, (h_n, _) = self.lstm(x)    # return ouput ,(hidden state , ) 
+
+        if return_seq:     
+            return out 
         
         # bidirectional: concat last forward + last backward
         if self.lstm.bidirectional:
