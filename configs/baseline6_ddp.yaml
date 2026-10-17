@@ -12,7 +12,7 @@ train:
   weight_decay: .0001
   eta_min: .00001
   drop_p: .6
-  gamma: 0.5
+  gamma: 0.0
   print_perclass: True 
 
   
