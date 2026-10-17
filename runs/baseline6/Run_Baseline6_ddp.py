@@ -128,7 +128,7 @@ val_loader=build_dataloader(val_dataset,batch_size,num_workers,shuffle=False,sam
 device = torch.device(f"cuda:{local_rank}")
 
 backbone = ResNet50()
-pretrained_person_model=PersonModel(backbone, num_actions=9, num_coarse=3, drop_p=0.7)
+pretrained_person_model=PersonModel(backbone, num_actions=9, num_coarse=3, drop_p=0.5)
 ckp=torch.load(b6_cfg['model']['path'],map_location=device,weights_only=True) 
 pretrained_person_model.load_state_dict(ckp["model_state"])
 
