@@ -188,8 +188,8 @@ class B5GroupTransform(BaseTransformV2):
 
     def get_train_augmentations(self) -> list:
         return [
-            transforms.RandomRotation(3),
-            transforms.ColorJitter(0.2, 0.2, 0.2, 0.05),
+           v2.RandomRotation(3),
+           v2.ColorJitter(0.2, 0.2, 0.2, 0.05),
         ]
     
 
@@ -201,8 +201,21 @@ class B6Transform(BaseTransformV2):
 
     def get_train_augmentations(self) -> list:
         return [
-            transforms.RandomRotation(3),
-            transforms.ColorJitter(0.2, 0.2, 0.2, 0.05),
+           v2.RandomRotation(3),
+           v2.ColorJitter(0.2, 0.2, 0.2, 0.05),
+        ]
+    
+
+
+# ─────────────────────────────────────────────────────────────
+#  BASELINE 7 — LSTM in last stage
+# ─────────────────────────────────────────────────────────────
+class B7Transform(BaseTransformV2):
+
+    def get_train_augmentations(self) -> list:
+        return [
+            v2.RandomRotation(3),
+            v2.ColorJitter(0.2, 0.2, 0.2, 0.05),
         ]
     
 
