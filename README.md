@@ -44,18 +44,18 @@ This repository implements a **progressive benchmark**. It starts from a single-
 
 ```mermaid
 flowchart LR
-    B1["B1<br/>Whole frame<br/>CNN"]
-    B3["B3<br/>+ Players<br/>+ Positions<br/>+ Attention"]
-    B4["B4<br/>+ Time on the<br/>whole scene<br/>(BiLSTM)"]
-    B5["B5<br/>+ Player tracklets<br/>(BiLSTM per player)<br/>+ Court-side max-pool"]
-    B6["B6<br/>+ Per-frame person<br/>pooling<br/>+ Group BiLSTM"]
+    B1["B1<br>Whole frame<br>CNN"]
+    B3["B3<br>+ Players<br>+ Positions<br>+ Attention"]
+    B4["B4<br>+ Time on the<br>whole scene<br>(BiLSTM)"]
+    B5["B5<br>+ Player tracklets<br>(BiLSTM per player)<br>+ Court-side max-pool"]
+    B6["B6<br>+ Per-frame person<br>pooling<br>+ Group BiLSTM"]
     
-    B1 -- add persons --> B3
-    B1 -- add time --> B4
-    B3 -- add time --> B5
-    B4 -- add persons --> B5
-    B3 -- reuse PersonModel, add time at group level --> B6
-    B5 -. compare: time at person vs group level .-> B6
+    B1 -->|add persons| B3
+    B1 -->|add time| B4
+    B3 -->|add time| B5
+    B4 -->|add persons| B5
+    B3 -->|reuse PersonModel, add time at group level| B6
+    B5 -.->|compare: time at person vs group level| B6
     
     style B6 fill:#16a34a,color:#fff
 ```
