@@ -453,7 +453,16 @@ ResNet50(pretrained=True)   # ImageNet weights, final FC removed
 
 ```mermaid
 flowchart LR
-    A["Frame 224×224"] --> B["ResNet-50"] --> C["2048-d"] --> D["Dropout 0.5"] --> E["Linear → 8 classes"]
+    A["Frame 224x224"]
+    B["ResNet-50"]
+    C["2048-d"]
+    D["Dropout 0.5"]
+    E["Linear -> 8 classes"]
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
 ```
 
 | Item | Value |
