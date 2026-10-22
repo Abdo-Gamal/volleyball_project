@@ -66,7 +66,7 @@ class B5Model(nn.Module):
         out, (h_n, _) = self.lstm(x)    # return ouput ,(hidden state , ) 
 
         if return_seq:     
-            return out 
+            return out                 # (B,T,hidden_dim*2)
         
         # bidirectional: concat last forward + last backward
         if self.lstm.bidirectional:

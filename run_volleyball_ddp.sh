@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=volleyball
-#SBATCH --output=/nfs/slurm/assu002/projects/volleyball_project/logs/baseline5.txt
+#SBATCH --output=/nfs/slurm/assu002/projects/volleyball_project/logs/baseline7.txt
 #SBATCH --time=8:00:00
 #SBATCH --mem-per-cpu=64G
 #SBATCH --cpus-per-gpu=2
@@ -80,7 +80,7 @@ cd /nfs/slurm/$USER/projects/volleyball_project
 echo "=== Starting Training ==="
 
 # [CHANGED 3] --standalone = "everything is on this one node": no rendezvous address, no port to pick
-torchrun --standalone --nproc_per_node=4 /nfs/slurm/assu002/projects/volleyball_project/runs/baseline5/Run_Baseline5_ddp.py
+torchrun --standalone --nproc_per_node=4 /nfs/slurm/assu002/projects/volleyball_project/runs/baseline7/Run_Baseline7_ddp.py
 
 echo ""
 echo "=== Saved outputs ==="

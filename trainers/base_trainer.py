@@ -78,8 +78,8 @@ class BaseTrainer:
         ctx = torch.enable_grad() if training else torch.no_grad()
         with ctx:
             for x, y in loader:
-                if y is None or y.size(0) <= 1:
-                    continue
+                #if y is None or y.size(0) <= 1:
+                #    continue
 
                 x = self.move_input(x)
                 y = y.to(self.device, non_blocking=True)
