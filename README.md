@@ -151,7 +151,7 @@ flowchart TB
 | **B4** | 9-Frame Sequence → ResNet-50 → BiLSTM Frame Model | 63.1% | **82.2% Macro F1** |
 | **B5** | Tracklet-level BiLSTM → 2-Court Max Pooling → Group Classifier | 67.6% | **87.0% Macro F1** |
 | **B6** | Frame-by-frame person pooling (2 court sides) → Group BiLSTM | 74.7% | **83.5% Macro F1** |
-| **B7** | Person BiLSTM sequence (frozen CNN) → per-frame 2-court-side max-pool → Group BiLSTM | 80.2% | **89.0% |
+| **B7** | Person BiLSTM sequence (frozen CNN) → per-frame 2-court-side max-pool → Group BiLSTM | 80.2% | **88.0% |
 
 > **Note on metrics:** the paper reports **accuracy**, while our B3/B4/B5/B6 numbers are **macro F1**. Macro F1 is stricter on minority classes, but the two numbers are not directly interchangeable. The best-checkpoint criterion in all trainers is validation macro F1.
 
