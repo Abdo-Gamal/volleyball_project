@@ -84,7 +84,7 @@ torchrun --standalone --nproc_per_node=4 /nfs/slurm/assu002/projects/volleyball_
 
 echo ""
 echo "=== Saved outputs ==="
-ls -lh /nfs/slurm/$USER/projects/volleyball_project/outputs/baseline5
+ls -lh /nfs/slurm/$USER/projects/volleyball_project/outputs/baseline7
 
 echo " DONE: $(date)"
 echo "========================================"
